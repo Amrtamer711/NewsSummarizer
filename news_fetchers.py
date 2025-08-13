@@ -117,7 +117,12 @@ def refine_articles(articles: List[Dict[str, Any]], section: str, openai_client:
     ]
 
     data = call_openai(openai_client, messages, model, json_schema=schema)
-    return data.get("articles", [])[:max_articles]
+    if isinstance(data, dict):
+        return data.get("articles", [])[:max_articles]
+    elif isinstance(data, list):
+        return data[:max_articles]
+    else:
+        return []
 
 
 def validate_and_fix_urls(articles: List[Dict[str, Any]], section: str, openai_client: Any, model: str, url_change_log: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
@@ -155,7 +160,12 @@ def validate_and_fix_urls(articles: List[Dict[str, Any]], section: str, openai_c
     ]
 
     data = call_openai(openai_client, messages, model, tools=[{"type": "web_search_preview"}], json_schema=schema)
-    fixed_list = data.get("articles", [])
+    if isinstance(data, dict):
+        fixed_list = data.get("articles", [])
+    elif isinstance(data, list):
+        fixed_list = data
+    else:
+        fixed_list = []
     
     # Track URL changes if log is provided
     if url_change_log is not None:
