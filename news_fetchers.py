@@ -263,11 +263,10 @@ def fetch_llm_news_for_section(
                 a["client"] = "OpenAI"
             collected.extend(articles)
             print(f"   ✅ OpenAI ({llm_config['openai_model']}): {len(articles)} articles", flush=True)
-            for idx, article in enumerate(articles[:10], 1):
+            for idx, article in enumerate(articles, 1):
                 print(f"      {idx}. {article.get('title', '')[:80]}...", flush=True)
-                if llm_config.get("test_mode"):
-                    print(f"         Source: {article.get('source', '')} | Date: {article.get('date', '')}", flush=True)
-                    print(f"         URL: {article.get('url', '')}", flush=True)
+                print(f"         Source: {article.get('source', '')} | Date: {article.get('date', '')}", flush=True)
+                print(f"         URL: {article.get('url', '')}", flush=True)
         except Exception as e:
             print(f"   ❌ OpenAI ({llm_config['openai_model']}): ERROR - {str(e)}", flush=True)
             if llm_config.get("test_mode"):
@@ -302,11 +301,10 @@ def fetch_llm_news_for_section(
                 a["client"] = "Perplexity"
             collected.extend(items or [])
             print(f"   ✅ Perplexity ({llm_config['perplexity_model']}): {len(items or [])} articles", flush=True)
-            for idx, article in enumerate(items[:10] if items else [], 1):
+            for idx, article in enumerate(items if items else [], 1):
                 print(f"      {idx}. {article.get('title', '')[:80]}...", flush=True)
-                if llm_config.get("test_mode"):
-                    print(f"         Source: {article.get('source', '')} | Date: {article.get('date', '')}", flush=True)
-                    print(f"         URL: {article.get('url', '')}", flush=True)
+                print(f"         Source: {article.get('source', '')} | Date: {article.get('date', '')}", flush=True)
+                print(f"         URL: {article.get('url', '')}", flush=True)
         except Exception as e:
             print(f"   ❌ Perplexity ({llm_config['perplexity_model']}): ERROR - {str(e)}", flush=True)
             if llm_config.get("test_mode"):
@@ -343,11 +341,10 @@ def fetch_llm_news_for_section(
                     a["client"] = "Gemini"
                 collected.extend(parsed)
                 print(f"   ✅ Gemini ({llm_config['gemini_model']}): {len(parsed)} articles", flush=True)
-                for idx, article in enumerate(parsed[:10], 1):
+                for idx, article in enumerate(parsed, 1):
                     print(f"      {idx}. {article.get('title', '')[:80]}...", flush=True)
-                    if llm_config.get("test_mode"):
-                        print(f"         Source: {article.get('source', '')} | Date: {article.get('date', '')}", flush=True)
-                        print(f"         URL: {article.get('url', '')}", flush=True)
+                    print(f"         Source: {article.get('source', '')} | Date: {article.get('date', '')}", flush=True)
+                    print(f"         URL: {article.get('url', '')}", flush=True)
         except Exception as e:
             print(f"   ❌ Gemini ({llm_config['gemini_model']}): ERROR - {str(e)}", flush=True)
             if llm_config.get("test_mode"):
