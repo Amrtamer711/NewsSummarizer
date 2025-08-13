@@ -231,3 +231,92 @@ def wrap_in_container(content: str) -> str:
     </body>
     </html>
     """
+
+
+def create_news_section_html(section_articles: Dict[str, List[Dict[str, Any]]], section_order: List[str]) -> str:
+    """Create the news section HTML for all sections"""
+    html = ""
+    
+    for section in section_order:
+        articles = section_articles.get(section, [])
+        html += f"""
+        <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:20px;margin-bottom:20px;">
+            <h3 style='color:#4fc3f7;margin-top:0;font-size:22px;padding-bottom:15px;border-bottom:1px solid #333;'>
+                {section}
+            </h3>
+            <ul style='padding-left:0;list-style:none;margin-top:20px;'>"""
+        
+        if not articles:
+            html += "<li style='color:#ccc;'>No news available for this section.</li>"
+        else:
+            for item in articles:
+                title = item.get("title", "Untitled")
+                url = item.get("url", "#")
+                desc = item.get("summary", "")
+                
+                desc_html = f"<p style='margin:4px 0 10px 0;color:#ccc;font-size:14px;'>{desc}</p>" if desc else ""
+                
+                html += f"""
+                <li style='margin-bottom:15px;border-bottom:1px solid #333;padding-bottom:15px;'>
+                    <a href='{url}' style='color:#4fc3f7;font-weight:bold;text-decoration:none;font-size:16px;display:block;margin-bottom:5px;'>
+                        {title}
+                    </a>
+                    {desc_html}
+                </li>"""
+        
+        html += """
+            </ul>
+        </div>
+        """
+    
+    return html
+
+
+def create_email_header(is_weekly: bool, date_str: str) -> str:
+    """Create the email header based on whether it's weekly or daily"""
+    if is_weekly:
+        title = "📊 Weekly OOH Industry Digest"
+        subtitle = "Stock Performance & News Highlights"
+    else:
+        title = "📰 Daily OOH Industry News"
+        subtitle = "Latest Updates & Market Insights"
+    
+    return f"""
+    <html>
+    <head>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background-color: #0a0a0a;
+                color: #fff;
+                margin: 0;
+                padding: 0;
+            }}
+            .container {{
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #111;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Main Header Section with Background -->
+            <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:30px;margin-bottom:30px;text-align:center;">
+                <h1 style="color:#4fc3f7;margin:0;font-size:36px;font-weight:600;">
+                    {title}
+                </h1>
+                <p style="color:#aaa;font-size:18px;margin:10px 0 0 0;">{date_str}</p>
+                <p style="color:#ccc;font-size:16px;margin:10px 0 0 0;">{subtitle}</p>
+            </div>
+    """
+
+
+def create_stock_metrics_section(metrics_html: str) -> str:
+    """Create the stock metrics section of the email"""
+    return f"""
+    <div style="margin-top:40px;">
+        {metrics_html}
+    </div>
+    """
