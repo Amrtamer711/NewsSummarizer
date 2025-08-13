@@ -198,6 +198,11 @@ def fetch_llm_news_for_section(
     if llm_enabled.get("openai") and clients.get("openai"):
         try:
             is_deep_research = "deep-research" in llm_config["openai_model"].lower()
+            print(f"\n   📝 OpenAI Prompt:", flush=True)
+            for msg in prompt:
+                print(f"      [{msg['role'].upper()}]:", flush=True)
+                print(f"      {msg['content']}", flush=True)
+                print(f"      " + "-"*80, flush=True)
             if is_deep_research:
                 modified_prompt = list(prompt)
                 modified = dict(modified_prompt[-1])
@@ -218,6 +223,9 @@ def fetch_llm_news_for_section(
                     "Ensure the response is valid JSON that can be parsed."
                 )
                 modified_prompt[-1] = modified
+                print(f"\n   📝 OpenAI Deep-Research Modified User Prompt:", flush=True)
+                print(f"      {modified['content']}", flush=True)
+                print(f"      " + "-"*80, flush=True)
                 data = call_openai(
                     client=clients["openai"],
                     messages=modified_prompt,
@@ -276,6 +284,11 @@ def fetch_llm_news_for_section(
     # Perplexity -> top-level array
     if llm_enabled.get("perplexity") and llm_config.get("perplexity_api_key"):
         try:
+            print(f"\n   📝 Perplexity Prompt:", flush=True)
+            for msg in prompt:
+                print(f"      [{msg['role'].upper()}]:", flush=True)
+                print(f"      {msg['content']}", flush=True)
+                print(f"      " + "-"*80, flush=True)
             schema_arr = format_json_schema({
                 "type": "array",
                 "items": {
@@ -314,6 +327,11 @@ def fetch_llm_news_for_section(
     # Gemini -> array via JSON instruction; adjust to EXACTLY 10 and no wrapping
     if llm_enabled.get("gemini") and clients.get("gemini"):
         try:
+            print(f"\n   📝 Gemini Prompt (before modification):", flush=True)
+            for msg in prompt:
+                print(f"      [{msg['role'].upper()}]:", flush=True)
+                print(f"      {msg['content']}", flush=True)
+                print(f"      " + "-"*80, flush=True)
             modified_prompt = list(prompt)
             if len(modified_prompt) > 1 and "content" in modified_prompt[1]:
                 modified_prompt[1]["content"] = modified_prompt[1]["content"].replace(
@@ -328,6 +346,9 @@ def fetch_llm_news_for_section(
                 "Remember to return EXACTLY 10 articles, not 5. "
                 "Ensure it is valid JSON and parsable by Python's json.loads()."
             )
+            print(f"\n   📝 Gemini Modified User Prompt (with JSON instruction):", flush=True)
+            print(f"      {modified_prompt[1]['content'] + json_instruction}", flush=True)
+            print(f"      " + "-"*80, flush=True)
             parsed = call_gemini(
                 client=clients["gemini"],
                 messages=modified_prompt,
