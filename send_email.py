@@ -140,6 +140,9 @@ def fetch_ai_news():
     
     def _process_section(key: str):
         prompt = prompt_map[key]
+        # Print section header first
+        print(f"\n🔍 Fetching {key}:", flush=True)
+        
         # Use helper to collect from all LLMs
         llm_config_with_key = dict(MODEL_CONFIG)
         llm_config_with_key["perplexity_api_key"] = PERPLEXITY_API_KEY
@@ -150,25 +153,6 @@ def fetch_ai_news():
             llm_config=llm_config_with_key,
             clients={"openai": client, "gemini": gemini_client}
         )
-        # Logging summary - show articles grouped by LLM
-        print(f"\n✅ LLMs - {key}: {len(collected)} articles total", flush=True)
-        
-        # Group by client to show which LLM returned what
-        by_client = {}
-        for article in collected:
-            client_name = article.get('client', 'Unknown')
-            if client_name not in by_client:
-                by_client[client_name] = []
-            by_client[client_name].append(article)
-        
-        # Print summary by LLM
-        for client_name, articles in by_client.items():
-            print(f"\n   {client_name}: {len(articles)} articles", flush=True)
-            for idx, article in enumerate(articles[:3], 1):
-                print(f"     {idx}. {article.get('title','')[:80]}...", flush=True)
-                if TEST_MODE:
-                    print(f"        Source: {article.get('source','')} | Date: {article.get('date','')}", flush=True)
-                    print(f"        URL: {article.get('url','')}", flush=True)
         
         return key, collected
 

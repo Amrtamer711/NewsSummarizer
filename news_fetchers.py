@@ -262,9 +262,9 @@ def fetch_llm_news_for_section(
             for a in articles:
                 a["client"] = "OpenAI"
             collected.extend(articles)
-            print(f"✅ OpenAI ({llm_config['openai_model']}): {len(articles)} articles", flush=True)
+            print(f"   ✅ OpenAI ({llm_config['openai_model']}): {len(articles)} articles", flush=True)
         except Exception as e:
-            print(f"❌ OpenAI ({llm_config['openai_model']}): ERROR - {str(e)}", flush=True)
+            print(f"   ❌ OpenAI ({llm_config['openai_model']}): ERROR - {str(e)}", flush=True)
             if llm_config.get("test_mode"):
                 import traceback
                 traceback.print_exc()
@@ -296,9 +296,9 @@ def fetch_llm_news_for_section(
             for a in items or []:
                 a["client"] = "Perplexity"
             collected.extend(items or [])
-            print(f"✅ Perplexity ({llm_config['perplexity_model']}): {len(items or [])} articles", flush=True)
+            print(f"   ✅ Perplexity ({llm_config['perplexity_model']}): {len(items or [])} articles", flush=True)
         except Exception as e:
-            print(f"❌ Perplexity ({llm_config['perplexity_model']}): ERROR - {str(e)}", flush=True)
+            print(f"   ❌ Perplexity ({llm_config['perplexity_model']}): ERROR - {str(e)}", flush=True)
             if llm_config.get("test_mode"):
                 import traceback
                 traceback.print_exc()
@@ -332,9 +332,9 @@ def fetch_llm_news_for_section(
                 for a in parsed:
                     a["client"] = "Gemini"
                 collected.extend(parsed)
-                print(f"✅ Gemini ({llm_config['gemini_model']}): {len(parsed)} articles", flush=True)
+                print(f"   ✅ Gemini ({llm_config['gemini_model']}): {len(parsed)} articles", flush=True)
         except Exception as e:
-            print(f"❌ Gemini ({llm_config['gemini_model']}): ERROR - {str(e)}", flush=True)
+            print(f"   ❌ Gemini ({llm_config['gemini_model']}): ERROR - {str(e)}", flush=True)
             if llm_config.get("test_mode"):
                 import traceback
                 traceback.print_exc()
