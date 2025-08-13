@@ -225,6 +225,8 @@ def fetch_llm_news_for_section(
                     tools=[{"type": "web_search_preview"}],
                     json_schema=None,
                 )
+                if llm_config.get("test_mode"):
+                    print(f"🔍 FINAL OUTPUT: {data}", flush=True)
                 articles = data.get("articles", []) if isinstance(data, dict) else []
             else:
                 schema_obj = format_json_schema({
@@ -260,8 +262,12 @@ def fetch_llm_news_for_section(
             for a in articles:
                 a["client"] = "OpenAI"
             collected.extend(articles)
-        except Exception:
-            pass
+            print(f"✅ OpenAI ({llm_config['openai_model']}): {len(articles)} articles", flush=True)
+        except Exception as e:
+            print(f"❌ OpenAI ({llm_config['openai_model']}): ERROR - {str(e)}", flush=True)
+            if llm_config.get("test_mode"):
+                import traceback
+                traceback.print_exc()
 
     # Perplexity -> top-level array
     if llm_enabled.get("perplexity") and llm_config.get("perplexity_api_key"):
@@ -290,8 +296,12 @@ def fetch_llm_news_for_section(
             for a in items or []:
                 a["client"] = "Perplexity"
             collected.extend(items or [])
-        except Exception:
-            pass
+            print(f"✅ Perplexity ({llm_config['perplexity_model']}): {len(items or [])} articles", flush=True)
+        except Exception as e:
+            print(f"❌ Perplexity ({llm_config['perplexity_model']}): ERROR - {str(e)}", flush=True)
+            if llm_config.get("test_mode"):
+                import traceback
+                traceback.print_exc()
 
     # Gemini -> array via JSON instruction; adjust to EXACTLY 10 and no wrapping
     if llm_enabled.get("gemini") and clients.get("gemini"):
@@ -322,7 +332,11 @@ def fetch_llm_news_for_section(
                 for a in parsed:
                     a["client"] = "Gemini"
                 collected.extend(parsed)
-        except Exception:
-            pass
+                print(f"✅ Gemini ({llm_config['gemini_model']}): {len(parsed)} articles", flush=True)
+        except Exception as e:
+            print(f"❌ Gemini ({llm_config['gemini_model']}): ERROR - {str(e)}", flush=True)
+            if llm_config.get("test_mode"):
+                import traceback
+                traceback.print_exc()
 
     return collected
