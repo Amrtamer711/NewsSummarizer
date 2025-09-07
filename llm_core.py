@@ -17,7 +17,7 @@ def call_openai(
     tools: Optional[List[Dict]] = None,
     json_schema: Optional[Dict] = None,
     background: bool = False,
-    reasoning_effort: str = "low",
+    reasoning_effort: str = "high",
 ) -> Dict[str, Any]:
     params: Dict[str, Any] = {
         "model": model,

@@ -1,51 +1,66 @@
-# Render configuration for NewsAI Daily Email
 services:
-  - type: cron
-    name: newsai-daily-email
-    runtime: python3
-    schedule: "0 2 * * *"  # Run at 2:00 AM UTC = 6:00 AM UAE time (UTC+4)
+  - type: web
+    name: newsai
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python send_email.py
-    
+    startCommand: python app.py
     envVars:
-      # API Keys (set these in Render dashboard)
-      - key: APP_PSWD
-        sync: false
-      - key: NEWS_API_KEY
-        sync: false
-      - key: NEWS_IO_KEY
-        sync: false
-      - key: PERPLEXITY_API_KEY
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GOOGLE_API_KEY
-        sync: false
+      - key: CRON_AUTH_TOKEN
+        generateValue: true
+      - key: PORT
+        value: 10000
+    autoDeploy: false
+
+  - type: cron
+    name: newsai-daily-news
+    runtime: python
+    schedule: "0 6 * * *"  # Daily at 6 AM UTC
+    buildCommand: pip install -r requirements.txt
+    startCommand: |
+      python -c "
+      import os
+      import requests
       
-      # Email Configuration
-      - key: FROM_EMAIL
-        value: daily.multiply.news@gmail.com
-      - key: TO_EMAIL
-        value: atmh2002@gmail.com
+      app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://newsai.onrender.com')
+      token = os.environ.get('CRON_AUTH_TOKEN')
       
-      # Model Configuration
-      - key: OPENAI_MODEL
-        value: gpt-5
-      - key: PERPLEXITY_MODEL
-        value: sonar-pro
-      - key: GEMINI_MODEL
-        value: gemini-2.5-pro
+      response = requests.post(
+          f'{app_url}/api/trigger/daily-news',
+          headers={'X-Auth-Token': token}
+      )
       
-      # Feature Flags
-      - key: ENABLE_OPENAI
-        value: true
-      - key: ENABLE_PERPLEXITY
-        value: true
-      - key: ENABLE_GEMINI
-        value: true
+      print(f'Daily news trigger: {response.status_code}')
+      print(response.json())
+      "
+    envVars:
+      - fromService:
+          type: web
+          name: newsai
+          envVarKey: CRON_AUTH_TOKEN
+
+  - type: cron
+    name: newsai-weekly-stocks
+    runtime: python
+    schedule: "0 6 * * 1"  # Every Monday at 6 AM UTC
+    buildCommand: pip install -r requirements.txt
+    startCommand: |
+      python -c "
+      import os
+      import requests
       
-      # Test Mode
-      - key: TEST_MODE
-        value: false
+      app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://newsai.onrender.com')
+      token = os.environ.get('CRON_AUTH_TOKEN')
+      
+      response = requests.post(
+          f'{app_url}/api/trigger/weekly-stocks',
+          headers={'X-Auth-Token': token}
+      )
+      
+      print(f'Weekly stocks trigger: {response.status_code}')
+      print(response.json())
+      "
+    envVars:
+      - fromService:
+          type: web
+          name: newsai
+          envVarKey: CRON_AUTH_TOKEN

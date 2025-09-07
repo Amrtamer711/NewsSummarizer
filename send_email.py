@@ -300,25 +300,8 @@ def build_and_send_email(test_mode=False):
             max_articles=MAX_ARTICLES_PER_SECTION
         )
     
-    print("\n🔗 Validating article URLs...")
-    if LLM_ENABLED.get("openai"):
-        fixed_articles = {}
-        url_change_log = []
-        for section, articles in filtered_articles.items():
-            fixed_articles[section] = nf_validate_and_fix_urls(
-                articles=articles,
-                section=section,
-                openai_client=client,
-                model=MODEL_CONFIG["openai_model"],
-                url_change_log=url_change_log
-            )
-        # 📋 Print summary of changes
-        print(f"\n🔧 URL Fix Summary: {len(url_change_log)} links updated\n")
-        for change in url_change_log:
-            print(f"🔗 [{change['section']}] {change['title']}\n→ OLD: {change['old_url']}\n→ NEW: {change['new_url']}\n")
-    else:
-        print("   Skipping URL validation (OpenAI disabled)")
-        fixed_articles = filtered_articles  # Skip URL fixing when OpenAI is disabled
+    # Skip URL validation since we're doing it immediately after LLM calls
+    fixed_articles = filtered_articles
     
     # Print summary in test mode
     if test_mode:

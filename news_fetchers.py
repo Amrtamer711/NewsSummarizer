@@ -196,6 +196,141 @@ def is_recent_article(article: Dict[str, Any], days: int = 7) -> bool:
         return False
 
 
+def google_search_first_result(query: str) -> Optional[str]:
+    """
+    Resolve first search result link using SerpAPI. Falls back to HTML scrape if needed.
+    """
+    try:
+        import requests
+        import os
+        from urllib.parse import quote, unquote
+        from config import SERPAPI_KEY
+        
+        if SERPAPI_KEY:
+            # 1) Try Google News via SerpAPI
+            params_news = {
+                "engine": "google_news",
+                "q": query,
+                "hl": "en",
+                "gl": "us",
+                "num": 10,
+                "api_key": SERPAPI_KEY,
+            }
+            r = requests.get("https://serpapi.com/search", params=params_news, timeout=10)
+            if r.ok:
+                data = r.json()
+                news_results = data.get("news_results") or []
+                for item in news_results:
+                    url = item.get("link") or item.get("source_url")
+                    if url and url.startswith("http"):
+                        return url
+            
+            # 2) Fallback to Google Organic via SerpAPI
+            params_org = {
+                "engine": "google",
+                "q": query,
+                "hl": "en",
+                "gl": "us",
+                "num": 10,
+                "api_key": SERPAPI_KEY,
+            }
+            r2 = requests.get("https://serpapi.com/search", params=params_org, timeout=10)
+            if r2.ok:
+                data2 = r2.json()
+                organic = data2.get("organic_results") or []
+                if organic:
+                    link = organic[0].get("link")
+                    if link and link.startswith("http"):
+                        return link
+        
+    except Exception as e:
+        print(f"      SerpAPI error: {e}", flush=True)
+    
+    # Final fallback: existing HTML parsing approach
+    try:
+        import requests
+        from urllib.parse import quote, unquote
+        import re
+        import html as ihtml
+        
+        search_url = f"https://www.google.com/search?q={quote(query)}"
+        headers = {
+            'User-Agent': (
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                'Chrome/115.0.0.0 Safari/537.36'
+            ),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+        response = requests.get(search_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        html_text = ihtml.unescape(response.text)
+        pattern_redirect_rel = r'href="/url\?q=([^"&]+)(?:&|&amp;)'  # relative
+        pattern_redirect_abs = r'href="https?://www\.google\.com/url\?q=([^"&]+)(?:&|&amp;)'  # absolute
+        for pattern in (pattern_redirect_rel, pattern_redirect_abs):
+            import re
+            matches = re.findall(pattern, html_text, flags=re.IGNORECASE)
+            if matches:
+                first_url = unquote(matches[0])
+                if not first_url.startswith((
+                    'http://www.google.', 'https://www.google.',
+                    'http://google.', 'https://google.',
+                    'https://accounts.', 'https://support.', 'https://policies.'
+                )):
+                    return first_url
+        pattern_direct = r'<a[^>]+href="(https?://[^"#]+)"[^>]*>'
+        for url in re.findall(pattern_direct, html_text, flags=re.IGNORECASE):
+            if (not any(domain in url for domain in (
+                'google.com', 'googleapis.com', 'gstatic.com', 'webcache.googleusercontent.com'
+            )) and len(url) > 20 and '.' in url):
+                return url
+        return search_url
+    except Exception as e:
+        print(f"      Search/scraping error: {e}", flush=True)
+        return None
+
+
+def fix_article_urls_with_search(articles: List[Dict[str, Any]], llm_name: str) -> List[Dict[str, Any]]:
+    """
+    For each article, search Google for the title and replace URL with first result.
+    """
+    print(f"   🔍 Searching Google for {llm_name} article URLs...", flush=True)
+    
+    fixed_articles = []
+    for idx, article in enumerate(articles, 1):
+        title = article.get('title', '')
+        source = article.get('source', '')
+        original_url = article.get('url', '')
+        
+        # Construct search query
+        search_query = f"{title} {source}"
+        
+        # Get first Google result
+        found_url = google_search_first_result(search_query)
+        
+        if found_url:
+            fixed_article = article.copy()
+            fixed_article['url'] = found_url
+            fixed_article['original_url'] = original_url
+            fixed_articles.append(fixed_article)
+            
+            print(f"      {idx}. {title[:60]}...", flush=True)
+            print(f"         Original: {original_url}", flush=True)
+            
+            # Check if we got an actual result or just the search URL
+            if found_url.startswith("https://www.google.com/search"):
+                print(f"         Fallback: {found_url} (couldn't extract first result)", flush=True)
+            else:
+                print(f"         ✓ Found: {found_url}", flush=True)
+        else:
+            # Keep original if search fails completely
+            fixed_articles.append(article)
+            print(f"      {idx}. ❌ Search failed, keeping original URL", flush=True)
+    
+    return fixed_articles
+
+
 def fetch_llm_news_for_section(
     prompt: List[Dict[str, str]],
     llm_enabled: Dict[str, bool],
@@ -279,6 +414,10 @@ def fetch_llm_news_for_section(
                 articles = data.get("articles", []) if isinstance(data, dict) else []
             for a in articles:
                 a["client"] = "OpenAI"
+            
+            # Fix URLs with Google search before adding to collected
+            articles = fix_article_urls_with_search(articles, "OpenAI")
+            
             collected.extend(articles)
             print(f"   ✅ OpenAI ({llm_config['openai_model']}): {len(articles)} articles", flush=True)
             for idx, article in enumerate(articles, 1):
@@ -322,6 +461,11 @@ def fetch_llm_news_for_section(
             )
             for a in items or []:
                 a["client"] = "Perplexity"
+            
+            # Fix URLs with Google search before adding to collected
+            if items:
+                items = fix_article_urls_with_search(items, "Perplexity")
+            
             collected.extend(items or [])
             print(f"   ✅ Perplexity ({llm_config['perplexity_model']}): {len(items or [])} articles", flush=True)
             for idx, article in enumerate(items if items else [], 1):
@@ -345,8 +489,8 @@ def fetch_llm_news_for_section(
             modified_prompt = list(prompt)
             if len(modified_prompt) > 1 and "content" in modified_prompt[1]:
                 modified_prompt[1]["content"] = modified_prompt[1]["content"].replace(
-                    "You must return exactly 5 articles",
-                    "You must return exactly 10 articles"
+                    "exactly 5",
+                    "exactly 10"
                 )
             json_instruction = (
                 "\n\nRespond ONLY with a raw JSON array of objects. "
@@ -370,6 +514,10 @@ def fetch_llm_news_for_section(
             if isinstance(parsed, list):
                 for a in parsed:
                     a["client"] = "Gemini"
+                
+                # Fix URLs with Google search before adding to collected
+                parsed = fix_article_urls_with_search(parsed, "Gemini")
+                
                 collected.extend(parsed)
                 print(f"   ✅ Gemini ({llm_config['gemini_model']}): {len(parsed)} articles", flush=True)
                 for idx, article in enumerate(parsed, 1):

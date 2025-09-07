@@ -9,10 +9,6 @@ from google.genai import types
 gemini_client = genai.Client(api_key=GOOGLE_API_KEY)
 
 
+# Configure OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
-# genai.configure(api_key=GOOGLE_API_KEY)
-# gemini = genai.GenerativeModel(
-#     model_name="gemini-2.5-pro",
-#     tools=[Tool(google_search=GoogleSearch())]
-# )
 
