@@ -12,8 +12,6 @@ services:
     envVars:
       - key: CRON_AUTH_TOKEN
         generateValue: true
-      - key: PORT
-        value: 10000
     autoDeploy: false
 
   - type: cron
