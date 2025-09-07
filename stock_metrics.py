@@ -84,13 +84,17 @@ def get_comprehensive_stock_metrics(ticker_symbol, company_name, llm_enabled=Non
     Returns dict with all requested metrics organized by sections
     """
     try:
+        print(f"     🔍 Starting comprehensive metrics collection...", flush=True)
+        
         # Fetch basic stock data
         stock_data = fetch_basic_stock_data(ticker_symbol)
         
         # Calculate market metrics (Section A)
+        print(f"     📊 Calculating market metrics...", flush=True)
         section_a = calculate_market_metrics(stock_data)
         
         # Calculate financial metrics (Section B)
+        print(f"     💰 Calculating financial metrics...", flush=True)
         section_b = calculate_financial_metrics(stock_data)
         
         # Section C: Operational Indicators (fetch via LLM if enabled)
@@ -99,17 +103,25 @@ def get_comprehensive_stock_metrics(ticker_symbol, company_name, llm_enabled=Non
             # Sequential LLM calls for operational and categorized news
             llm_config_with_logger = dict(llm_config)
             llm_config_with_logger["__logger__"] = logger
+            
+            print(f"     🤖 Fetching operational metrics via LLMs...", flush=True)
             try:
                 operational_data = fetch_operational_metrics(
                     company_name, ticker_symbol, llm_enabled, llm_config_with_logger, clients
                 )
-            except Exception:
+                print(f"     ✅ Operational metrics received", flush=True)
+            except Exception as e:
+                print(f"     ⚠️  Operational metrics failed: {str(e)[:50]}...", flush=True)
                 operational_data = {}
+            
+            print(f"     📰 Fetching categorized news via LLMs...", flush=True)
             try:
                 categorized_news = fetch_categorized_news(
                     company_name, ticker_symbol, llm_enabled, llm_config_with_logger, clients
                 )
-            except Exception:
+                print(f"     ✅ Categorized news received", flush=True)
+            except Exception as e:
+                print(f"     ⚠️  Categorized news failed: {str(e)[:50]}...", flush=True)
                 categorized_news = None
 
             section_c = {
@@ -132,16 +144,21 @@ def get_comprehensive_stock_metrics(ticker_symbol, company_name, llm_enabled=Non
         # Fetch news items
         news_items = []
         if llm_enabled and llm_config and clients:
+            print(f"     🗞️  Fetching latest company news...", flush=True)
             try:
                 news_items = fetch_company_news_items(
                     company_name, ticker_symbol, llm_enabled, llm_config, clients, 
                     logger=logger, max_items=3
                 )
-            except Exception:
+                print(f"     ✅ Found {len(news_items)} news items", flush=True)
+            except Exception as e:
+                print(f"     ⚠️  News fetch failed: {str(e)[:50]}...", flush=True)
                 pass
         
         # Get analyst signal
+        print(f"     📊 Fetching analyst ratings...", flush=True)
         analyst_signal = get_analyst_signal(stock_data['ticker'])
+        print(f"     ✅ Analyst signal: {analyst_signal if analyst_signal else 'None'}", flush=True)
         
         # Get categorized news if not already fetched above
         if llm_enabled and llm_config and clients and categorized_news is None:

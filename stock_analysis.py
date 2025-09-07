@@ -53,15 +53,24 @@ def fetch_basic_stock_data(ticker_symbol: str) -> Dict[str, Any]:
     Fetch basic stock data from yfinance.
     Returns ticker, info, and history data.
     """
+    print(f"     📈 Fetching yfinance data for {ticker_symbol}...", flush=True)
     ticker = yf.Ticker(ticker_symbol)
+    
+    print(f"     📊 Getting company info...", flush=True)
     info = ticker.info
+    
+    print(f"     📅 Fetching 1-year history...", flush=True)
     hist_1y = ticker.history(period="1y")
+    
+    print(f"     📅 Fetching 7-day history...", flush=True)
     hist_1w = ticker.history(period="7d")
     
     # Get current price
     current_price = info.get('currentPrice', 0)
     if current_price == 0 and len(hist_1w) > 0:
         current_price = hist_1w['Close'].iloc[-1]
+    
+    print(f"     ✅ Basic data fetched. Current price: ${current_price:.2f}", flush=True)
     
     return {
         'ticker': ticker,
@@ -203,6 +212,7 @@ def get_operational_metrics(company_name: str, ticker_symbol: str, llm_enabled: 
 
     # Gemini
     if llm_enabled.get("gemini") and clients.get("gemini"):
+        print(f"       🤖 Calling Gemini for operational data...", flush=True)
         try:
             json_instruction = (
                 "\n\nRespond ONLY with a raw JSON object. DO NOT include markdown fences. Ensure valid JSON with keys: "
@@ -215,7 +225,9 @@ def get_operational_metrics(company_name: str, ticker_symbol: str, llm_enabled: 
                 json_instruction=json_instruction,
             )
             all_metrics["gemini"] = data
+            print(f"       ✅ Gemini returned operational data", flush=True)
         except Exception as e:
+            print(f"       ❌ Gemini failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Gemini operational metrics error: {e}")
 
     # Aggregate via OpenAI
