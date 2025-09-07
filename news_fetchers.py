@@ -266,7 +266,7 @@ def verify_article_with_search(article: Dict[str, Any], days_back: int = 3) -> D
             "tbs": f"qdr:d{flexible_days}"  # Use flexible date range
         }
         
-        r = requests.get("https://serpapi.com/search", params=params, timeout=10)
+        r = requests.get("https://serpapi.com/search", params=params, timeout=30)
         if r.ok:
             data = r.json()
             news_results = data.get("news_results", [])
@@ -317,7 +317,7 @@ def verify_article_with_search(article: Dict[str, Any], days_back: int = 3) -> D
             "tbs": f"qdr:d{flexible_days}"
         }
         
-        r = requests.get("https://serpapi.com/search", params=params, timeout=10)
+        r = requests.get("https://serpapi.com/search", params=params, timeout=30)
         if r.ok:
             data = r.json()
             organic_results = data.get("organic_results", [])
@@ -477,7 +477,7 @@ def google_search_first_result(query: str) -> Optional[str]:
                 "num": 10,
                 "api_key": SERPAPI_KEY,
             }
-            r = requests.get("https://serpapi.com/search", params=params_news, timeout=10)
+            r = requests.get("https://serpapi.com/search", params=params_news, timeout=30)
             if r.ok:
                 data = r.json()
                 news_results = data.get("news_results") or []
@@ -495,7 +495,7 @@ def google_search_first_result(query: str) -> Optional[str]:
                 "num": 10,
                 "api_key": SERPAPI_KEY,
             }
-            r2 = requests.get("https://serpapi.com/search", params=params_org, timeout=10)
+            r2 = requests.get("https://serpapi.com/search", params=params_org, timeout=30)
             if r2.ok:
                 data2 = r2.json()
                 organic = data2.get("organic_results") or []
@@ -524,7 +524,7 @@ def google_search_first_result(query: str) -> Optional[str]:
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
         }
-        response = requests.get(search_url, headers=headers, timeout=10)
+        response = requests.get(search_url, headers=headers, timeout=30)
         response.raise_for_status()
         html_text = ihtml.unescape(response.text)
         pattern_redirect_rel = r'href="/url\?q=([^"&]+)(?:&|&amp;)'  # relative

@@ -14,8 +14,6 @@ services:
         generateValue: true
       - key: PORT
         value: 10000
-      - key: DATA_DIR
-        value: /data
     autoDeploy: false
 
   - type: cron

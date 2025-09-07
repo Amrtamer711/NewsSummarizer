@@ -166,7 +166,7 @@ ALPHA_VANTAGE_API_KEY=...
 
 # Application Settings (Optional)
 BASE_PUBLIC_URL=http://localhost:3000
-DATA_DIR=./data  # /data on production
+# DATA_DIR automatically detected (/data on Render, ./data locally)
 # TEST_MODE automatically detected (false on Render, true locally)
 ```
 
@@ -304,7 +304,7 @@ Note: Legacy endpoints `/api/trigger/daily-news` and `/api/trigger/weekly-stocks
    Add all variables from `.env` file in Render dashboard:
    - All API keys
    - Email configuration
-   - Set `DATA_DIR=/data`
+   - DATA_DIR is automatic (no need to set)
    - TEST_MODE is automatic (no need to set)
 
 4. **Deploy**
