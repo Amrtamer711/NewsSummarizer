@@ -601,46 +601,6 @@ def cleanup_charts():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/trigger/weekly-stocks', methods=['POST'])
-def trigger_weekly_stocks():
-    """Endpoint to trigger weekly stocks + news collection - for Monday Render cron jobs"""
-    # Get auth token from header or query param
-    auth_token = request.headers.get('X-Auth-Token') or request.args.get('auth_token')
-    expected_token = os.environ.get('CRON_AUTH_TOKEN')
-    
-    if not expected_token or auth_token != expected_token:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    try:
-        # Force Monday behavior even if not Monday (for weekly stocks)
-        date = datetime.now()
-        original_weekday = date.weekday()
-        
-        print(f"🔄 Triggered weekly stocks + news collection for {date.strftime('%Y-%m-%d')}")
-        
-        # Temporarily override weekday check by modifying the date to be Monday
-        if original_weekday != 0:
-            # Find the most recent Monday
-            days_since_monday = (date.weekday() - 0) % 7
-            if days_since_monday == 0 and date.hour < 6:  # If it's Monday but before 6am, use last Monday
-                days_since_monday = 7
-            monday_date = date - timedelta(days=days_since_monday)
-            date = monday_date
-        
-        # Run the digest build with stocks
-        payload = build_digest_for_date(date)
-        
-        return jsonify({
-            'success': True,
-            'date': payload['date'],
-            'sections': {k: len(v) for k, v in payload['sections'].items()},
-            'has_stocks': bool(payload.get('stocks_html')),
-            'actual_weekday': original_weekday,
-            'processed_as_monday': True
-        }), 200
-    except Exception as e:
-        print(f"❌ Error in weekly stocks trigger: {e}")
-        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
