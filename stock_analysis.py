@@ -341,6 +341,7 @@ def get_categorized_news(company_name: str, ticker_symbol: str, llm_enabled: Dic
 
     # Gemini
     if llm_enabled.get("gemini") and clients.get("gemini"):
+        print(f"       📰 Gemini categorizing {company_name} news...", flush=True)
         try:
             json_instruction = (
                 "\n\nRespond ONLY with a raw JSON object for keys: earnings, strategic, leadership, regulatory, sentiment."
@@ -352,11 +353,14 @@ def get_categorized_news(company_name: str, ticker_symbol: str, llm_enabled: Dic
                 json_instruction=json_instruction,
             )
             all_news["gemini"] = data
+            print(f"       ✅ Gemini categorized news ready", flush=True)
         except Exception as e:
+            print(f"       ❌ Gemini categorization failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Gemini categorized news error: {e}")
 
     # Aggregate with OpenAI
     if all_news and llm_enabled.get("openai") and clients.get("openai"):
+        print(f"       🔄 Aggregating news from {len(all_news)} sources with OpenAI...", flush=True)
         try:
             agg_schema = format_json_schema(schema["schema"], name="aggregated_news")
             messages = [
@@ -378,8 +382,10 @@ def get_categorized_news(company_name: str, ticker_symbol: str, llm_enabled: Dic
                 model=llm_config["openai_model"],
                 json_schema=agg_schema,
             )
+            print(f"       ✅ News aggregation complete", flush=True)
             return data
         except Exception as e:
+            print(f"       ❌ News aggregation failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Aggregation error: {e}")
 
     # Fallback simple merge
