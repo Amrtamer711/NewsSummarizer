@@ -18,7 +18,7 @@ services:
     name: newsai-daily-digest
     runtime: python
     region: singapore  # Deploy to Singapore region
-    schedule: "0 6 * * *"  # Daily at 6 AM UTC (includes stocks on Mondays)
+    schedule: "0 3 * * *"  # Daily at 3 AM UTC (7 AM UAE time)
     buildCommand: pip install -r requirements.txt
     startCommand: |
       python -c "
