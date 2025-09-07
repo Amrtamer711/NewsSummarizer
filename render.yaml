@@ -19,53 +19,29 @@ services:
     autoDeploy: false
 
   - type: cron
-    name: newsai-daily-news
+    name: newsai-daily-digest
     runtime: python
     region: singapore  # Deploy to Singapore region
-    schedule: "0 6 * * *"  # Daily at 6 AM UTC
+    schedule: "0 6 * * *"  # Daily at 6 AM UTC (includes stocks on Mondays)
     buildCommand: pip install -r requirements.txt
     startCommand: |
       python -c "
       import os
       import requests
+      from datetime import datetime
       
       app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://newsai.onrender.com')
       token = os.environ.get('CRON_AUTH_TOKEN')
       
+      # Single endpoint handles both daily news and Monday stocks
       response = requests.post(
-          f'{app_url}/api/trigger/daily-news',
+          f'{app_url}/api/trigger/daily-digest',
           headers={'X-Auth-Token': token}
       )
       
-      print(f'Daily news trigger: {response.status_code}')
-      print(response.json())
-      "
-    envVars:
-      - fromService:
-          type: web
-          name: newsai
-          envVarKey: CRON_AUTH_TOKEN
-
-  - type: cron
-    name: newsai-weekly-stocks
-    runtime: python
-    region: singapore  # Deploy to Singapore region
-    schedule: "0 6 * * 1"  # Every Monday at 6 AM UTC
-    buildCommand: pip install -r requirements.txt
-    startCommand: |
-      python -c "
-      import os
-      import requests
-      
-      app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://newsai.onrender.com')
-      token = os.environ.get('CRON_AUTH_TOKEN')
-      
-      response = requests.post(
-          f'{app_url}/api/trigger/weekly-stocks',
-          headers={'X-Auth-Token': token}
-      )
-      
-      print(f'Weekly stocks trigger: {response.status_code}')
+      is_monday = datetime.now().weekday() == 0
+      digest_type = 'Monday (News + Stocks)' if is_monday else 'Daily News'
+      print(f'{digest_type} digest trigger: {response.status_code}')
       print(response.json())
       "
     envVars:

@@ -241,12 +241,8 @@ TEST_MODE=true python send_email.py
 ### Production Commands
 
 ```bash
-# Daily news collection (via API)
-curl -X POST http://localhost:3000/api/trigger/daily-news \
-  -H "X-Auth-Token: your-cron-token"
-
-# Weekly stocks (Mondays)
-curl -X POST http://localhost:3000/api/trigger/weekly-stocks \
+# Daily digest (includes stocks on Mondays)
+curl -X POST http://localhost:3000/api/trigger/daily-digest \
   -H "X-Auth-Token: your-cron-token"
 
 # Clean old charts
@@ -271,11 +267,12 @@ curl -X POST http://localhost:3000/api/cleanup-charts?days=30 \
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/trigger/daily-news` | POST | Trigger daily news collection |
-| `/api/trigger/weekly-stocks` | POST | Trigger weekly stocks + news |
+| `/api/trigger/daily-digest` | POST | Trigger daily digest (includes stocks on Mondays) |
 | `/api/cleanup-charts` | POST | Clean old stock charts |
 | `/save-article` | POST | Save an article |
 | `/delete-article` | DELETE | Remove saved article |
+
+Note: Legacy endpoints `/api/trigger/daily-news` and `/api/trigger/weekly-stocks` redirect to `/api/trigger/daily-digest` for backward compatibility.
 
 ### Save Article Format
 
@@ -314,8 +311,7 @@ curl -X POST http://localhost:3000/api/cleanup-charts?days=30 \
    - Render will automatically:
      - Deploy all services to Singapore region
      - Create web service with persistent disk (1GB)
-     - Set up daily news cron job (6 AM UTC)
-     - Set up weekly stocks cron job (Mondays 6 AM UTC)
+     - Set up daily digest cron job (6 AM UTC, includes stocks on Mondays)
 
 ### Manual Deployment
 
@@ -346,11 +342,8 @@ curl -X POST http://localhost:3000/api/cleanup-charts?days=30 \
 
 3. **Configure Cron Jobs**
    ```cron
-   # Daily news at 6 AM
-   0 6 * * * curl -X POST http://localhost:3000/api/trigger/daily-news -H "X-Auth-Token: $CRON_TOKEN"
-   
-   # Weekly stocks on Mondays
-   0 6 * * 1 curl -X POST http://localhost:3000/api/trigger/weekly-stocks -H "X-Auth-Token: $CRON_TOKEN"
+   # Daily digest at 6 AM (includes stocks on Mondays)
+   0 6 * * * curl -X POST http://localhost:3000/api/trigger/daily-digest -H "X-Auth-Token: $CRON_TOKEN"
    ```
 
 ## 🛠️ Development

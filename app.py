@@ -518,9 +518,9 @@ def stocks():
     return render_template_string(BASE_HTML, content=content, nav_active='stocks')
 
 
-@app.route('/api/trigger/daily-news', methods=['POST'])
-def trigger_daily_news():
-    """Endpoint to trigger daily news collection - for Render cron jobs"""
+@app.route('/api/trigger/daily-digest', methods=['POST'])
+def trigger_daily_digest():
+    """Single endpoint for daily digest - handles both news and Monday stocks"""
     # Get auth token from header or query param
     auth_token = request.headers.get('X-Auth-Token') or request.args.get('auth_token')
     expected_token = os.environ.get('CRON_AUTH_TOKEN')
@@ -530,20 +530,38 @@ def trigger_daily_news():
     
     try:
         date = datetime.now()
-        print(f"🔄 Triggered daily news collection for {date.strftime('%Y-%m-%d')}")
+        is_monday = date.weekday() == 0
         
-        # Run the digest build (without stocks on non-Monday)
+        digest_type = "daily news + weekly stocks" if is_monday else "daily news"
+        print(f"🔄 Triggered {digest_type} collection for {date.strftime('%Y-%m-%d')}")
+        
+        # Run the digest build (includes stocks automatically on Mondays)
         payload = build_digest_for_date(date)
         
         return jsonify({
             'success': True,
             'date': payload['date'],
+            'digest_type': digest_type,
+            'is_monday': is_monday,
             'sections': {k: len(v) for k, v in payload['sections'].items()},
             'has_stocks': bool(payload.get('stocks_html'))
         }), 200
     except Exception as e:
-        print(f"❌ Error in daily news trigger: {e}")
+        print(f"❌ Error in daily digest trigger: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# Keep the old endpoints for backward compatibility but have them redirect
+@app.route('/api/trigger/daily-news', methods=['POST'])
+def trigger_daily_news():
+    """Legacy endpoint - redirects to daily-digest"""
+    return trigger_daily_digest()
+
+
+@app.route('/api/trigger/weekly-stocks', methods=['POST'])
+def trigger_weekly_stocks():
+    """Legacy endpoint - redirects to daily-digest"""
+    return trigger_daily_digest()
 
 
 @app.route('/api/cleanup-charts', methods=['POST'])
