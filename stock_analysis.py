@@ -307,6 +307,7 @@ def get_categorized_news(company_name: str, ticker_symbol: str, llm_enabled: Dic
 
     # OpenAI
     if llm_enabled.get("openai") and clients.get("openai"):
+        print(f"       📰 OpenAI categorizing {company_name} news...", flush=True)
         try:
             data = call_openai(
                 client=clients["openai"],
@@ -316,11 +317,14 @@ def get_categorized_news(company_name: str, ticker_symbol: str, llm_enabled: Dic
                 json_schema=schema,
             )
             all_news["openai"] = data
+            print(f"       ✅ OpenAI categorized news ready", flush=True)
         except Exception as e:
+            print(f"       ❌ OpenAI categorization failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"OpenAI categorized news error: {e}")
 
     # Perplexity
     if llm_enabled.get("perplexity") and llm_config.get("perplexity_api_key"):
+        print(f"       📰 Perplexity categorizing {company_name} news...", flush=True)
         try:
             data = call_perplexity(
                 api_key=llm_config["perplexity_api_key"],
@@ -330,7 +334,9 @@ def get_categorized_news(company_name: str, ticker_symbol: str, llm_enabled: Dic
                 timeout=30,
             )
             all_news["perplexity"] = data
+            print(f"       ✅ Perplexity categorized news ready", flush=True)
         except Exception as e:
+            print(f"       ❌ Perplexity categorization failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Perplexity categorized news error: {e}")
 
     # Gemini
@@ -458,11 +464,14 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
                 timeout=30,
             )
             items.extend(data)
+            print(f"       ✅ Perplexity found {len(data) if isinstance(data, list) else 0} news items", flush=True)
         except Exception as e:
+            print(f"       ❌ Perplexity news failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Perplexity company news error: {e}")
 
     # Gemini: array via instruction
     if llm_enabled.get("gemini") and clients.get("gemini"):
+        print(f"       🗞️  Gemini searching for {company_name} news...", flush=True)
         try:
             json_instruction = (
                 "\n\nRespond ONLY with a raw JSON array of objects. DO NOT include markdown fences. "
@@ -478,11 +487,16 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
                 data = data["items"]
             if isinstance(data, list):
                 items.extend(data)
+                print(f"       ✅ Gemini found {len(data)} news items", flush=True)
+            else:
+                print(f"       ⚠️  Gemini returned unexpected format", flush=True)
         except Exception as e:
+            print(f"       ❌ Gemini news failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Gemini company news error: {e}")
 
     # Refine & select top using OpenAI
     if items and llm_enabled.get("openai") and clients.get("openai"):
+        print(f"       🔄 Refining {len(items)} total news items with OpenAI...", flush=True)
         try:
             schema_ref = format_json_schema(
                 {
