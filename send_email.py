@@ -99,6 +99,9 @@ DATE_STR = datetime.now().strftime("%B %d, %Y")
 # === STOCK GRAPH ===
 def plot_stock_chart(ticker, name=None, period="7d"):
     """Plot stock chart for specified period (default 7 days for weekly tracking)"""
+    from config import STATIC_DIR
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    
     data = yf.Ticker(ticker).history(period=period)
     plt.style.use("cyberpunk")
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -118,7 +121,9 @@ def plot_stock_chart(ticker, name=None, period="7d"):
     ax.set_ylabel("Price (Local)")
     ax.legend()
     mplcyberpunk.add_glow_effects()
-    path = f"{ticker}_{period}.png"
+    # Save to static directory
+    filename = f"{ticker}_{period}.png"
+    path = os.path.join(STATIC_DIR, filename)
     plt.tight_layout()
     plt.savefig(path, dpi=300)
     plt.close()

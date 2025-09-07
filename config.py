@@ -19,3 +19,10 @@ OUTLOOK_SMTP_PASS = os.getenv("OUTLOOK_SMTP_PASS", "")  # app password or accoun
 
 # Public base URL of the site for links in notifications
 BASE_PUBLIC_URL = os.getenv("BASE_PUBLIC_URL", "http://localhost:3000")
+
+# Data directory configuration
+# On Render.com, persistent disk is mounted at /data
+# Locally, use ./data
+DATA_DIR = os.getenv("DATA_DIR", "/data" if os.path.exists("/data") else "./data")
+DATABASE_PATH = os.path.join(DATA_DIR, "newsai.db")
+STATIC_DIR = os.path.join(DATA_DIR, "static")

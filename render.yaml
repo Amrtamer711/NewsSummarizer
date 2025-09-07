@@ -4,11 +4,17 @@ services:
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
+    disk:
+      name: newsai-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: CRON_AUTH_TOKEN
         generateValue: true
       - key: PORT
         value: 10000
+      - key: DATA_DIR
+        value: /data
     autoDeploy: false
 
   - type: cron

@@ -2,8 +2,13 @@ import sqlite3
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple, Set
+import os
+from config import DATABASE_PATH, DATA_DIR
 
-DB_PATH = 'newsai.db'
+# Ensure data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
+
+DB_PATH = DATABASE_PATH
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS digests (

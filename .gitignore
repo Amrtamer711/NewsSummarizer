@@ -13,9 +13,16 @@ env/
 ENV/
 
 # Generated files
-*.png
 *.html
 *.log
+
+# Data directory contents (but keep directory structure)
+data/*
+!data/.gitkeep
+
+# Database files
+newsai.db
+*.db
 
 # IDE
 .vscode/

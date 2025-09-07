@@ -6,13 +6,17 @@ from flask import Flask, request, jsonify, render_template_string, redirect, url
 from storage import init_db, save_digest, get_digest, save_article, list_saved_articles, is_article_saved, delete_article_by_url, list_digest_dates_between
 from send_email import fetch_ai_news, fetch_news, MODEL_CONFIG, LLM_ENABLED, STOCKS, plot_stock_chart, SECTION_ORDER
 from stock_metrics import get_comprehensive_stock_metrics, format_metrics_html, generate_stock_summary_table
-from config import PERPLEXITY_API_KEY
+from config import PERPLEXITY_API_KEY, STATIC_DIR
 from clients import client as openai_client, gemini_client
 from notifier import send_outlook_email
 from config import BASE_PUBLIC_URL
 
 app = Flask(__name__)
 init_db()
+
+# Configure Flask to serve static files from data directory
+app.static_folder = STATIC_DIR
+app.static_url_path = '/static'
 
 BASE_HTML = """
 <!doctype html>
@@ -111,9 +115,9 @@ ARTICLE_ITEM = """
 
 
 def _ensure_static_dir():
-    static_dir = os.path.join(os.path.dirname(__file__), 'static')
-    os.makedirs(static_dir, exist_ok=True)
-    return static_dir
+    # Use the configured static directory from config
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    return STATIC_DIR
 
 
 def _build_weekly_stocks_html(date: datetime) -> str:
