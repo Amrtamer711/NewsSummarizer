@@ -2,6 +2,7 @@ services:
   - type: web
     name: newsai
     runtime: python
+    region: singapore  # Deploy to Singapore region
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
     disk:
@@ -20,6 +21,7 @@ services:
   - type: cron
     name: newsai-daily-news
     runtime: python
+    region: singapore  # Deploy to Singapore region
     schedule: "0 6 * * *"  # Daily at 6 AM UTC
     buildCommand: pip install -r requirements.txt
     startCommand: |
@@ -47,6 +49,7 @@ services:
   - type: cron
     name: newsai-weekly-stocks
     runtime: python
+    region: singapore  # Deploy to Singapore region
     schedule: "0 6 * * 1"  # Every Monday at 6 AM UTC
     buildCommand: pip install -r requirements.txt
     startCommand: |

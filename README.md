@@ -312,7 +312,8 @@ curl -X POST http://localhost:3000/api/cleanup-charts?days=30 \
 
 4. **Deploy**
    - Render will automatically:
-     - Create web service with persistent disk
+     - Deploy all services to Singapore region
+     - Create web service with persistent disk (1GB)
      - Set up daily news cron job (6 AM UTC)
      - Set up weekly stocks cron job (Mondays 6 AM UTC)
 
