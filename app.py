@@ -120,9 +120,31 @@ def _ensure_static_dir():
     return STATIC_DIR
 
 
+def _cleanup_old_charts(keep_days=7):
+    """Remove stock chart PNG files older than keep_days."""
+    try:
+        import glob
+        from datetime import datetime, timedelta
+        
+        cutoff_time = datetime.now() - timedelta(days=keep_days)
+        pattern = os.path.join(STATIC_DIR, "*_7d.png")
+        
+        for filepath in glob.glob(pattern):
+            file_mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
+            if file_mtime < cutoff_time:
+                os.remove(filepath)
+                print(f"🧹 Cleaned up old chart: {os.path.basename(filepath)}")
+    except Exception as e:
+        print(f"⚠️ Chart cleanup error: {e}")
+
+
 def _build_weekly_stocks_html(date: datetime) -> str:
     # Build full stock section (summary + detailed), move charts to /static, replace cid: refs
     static_dir = _ensure_static_dir()
+    
+    # Clean up old charts before generating new ones
+    _cleanup_old_charts(keep_days=30)  # Keep charts for 30 days
+    
     stock_metrics_list = []
     stock_imgs = []
     # Prepare LLM clients and config identical to email job
@@ -521,6 +543,43 @@ def trigger_daily_news():
         }), 200
     except Exception as e:
         print(f"❌ Error in daily news trigger: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cleanup-charts', methods=['POST'])
+def cleanup_charts():
+    """Manually trigger cleanup of old chart files."""
+    auth_token = request.headers.get('X-Auth-Token') or request.args.get('auth_token')
+    expected_token = os.environ.get('CRON_AUTH_TOKEN')
+    
+    if not expected_token or auth_token != expected_token:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        # Get days parameter (default 30)
+        days = request.args.get('days', 30, type=int)
+        
+        # Count files before cleanup
+        pattern = os.path.join(STATIC_DIR, "*_7d.png")
+        import glob
+        before_count = len(glob.glob(pattern))
+        
+        # Run cleanup
+        _cleanup_old_charts(keep_days=days)
+        
+        # Count files after cleanup
+        after_count = len(glob.glob(pattern))
+        removed_count = before_count - after_count
+        
+        return jsonify({
+            'success': True,
+            'files_before': before_count,
+            'files_after': after_count,
+            'files_removed': removed_count,
+            'keep_days': days
+        }), 200
+    except Exception as e:
+        print(f"❌ Error in chart cleanup: {e}")
         return jsonify({'error': str(e)}), 500
 
 

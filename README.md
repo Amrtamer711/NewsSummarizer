@@ -330,10 +330,12 @@ Final digest includes:
 
 ### API Routes
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/trigger-stocks-monday` | POST | Trigger weekly stock analysis |
-| `/digests` | GET | List available digests |
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/api/trigger/daily-news` | POST | Trigger daily news collection | Yes (X-Auth-Token) |
+| `/api/trigger/weekly-stocks` | POST | Trigger weekly stocks + news | Yes (X-Auth-Token) |
+| `/api/cleanup-charts` | POST | Clean up old stock charts | Yes (X-Auth-Token) |
+| `/digests` | GET | List available digests | No |
 
 ## File Structure
 
