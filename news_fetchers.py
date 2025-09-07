@@ -81,6 +81,19 @@ def fetch_news_from_multiple_apis(section: str, query: str, newsapi_client: Opti
 def refine_articles(articles: List[Dict[str, Any]], section: str, openai_client: Any, model: str, max_articles: int) -> List[Dict[str, Any]]:
     if not articles:
         return []
+    
+    # Store original URLs and verified URLs
+    url_mapping = {}
+    for article in articles:
+        # Create a unique key for each article
+        key = f"{article.get('title', '')}_{article.get('source', '')}"
+        url_mapping[key] = {
+            "url": article.get("url", ""),
+            "verified_url": article.get("verified_url", ""),
+            "original_url": article.get("original_url", ""),
+            "verified": article.get("verified", False)
+        }
+    
     schema = format_json_schema({
         "type": "object",
         "properties": {
@@ -117,12 +130,27 @@ def refine_articles(articles: List[Dict[str, Any]], section: str, openai_client:
     ]
 
     data = call_openai(openai_client, messages, model, json_schema=schema)
+    refined_articles = []
+    
     if isinstance(data, dict):
-        return data.get("articles", [])[:max_articles]
+        refined_articles = data.get("articles", [])[:max_articles]
     elif isinstance(data, list):
-        return data[:max_articles]
-    else:
-        return []
+        refined_articles = data[:max_articles]
+    
+    # Restore the verified URLs
+    for article in refined_articles:
+        key = f"{article.get('title', '')}_{article.get('source', '')}"
+        if key in url_mapping:
+            url_info = url_mapping[key]
+            # Prefer verified URL if available
+            if url_info.get("verified_url"):
+                article["url"] = url_info["verified_url"]
+                article["verified"] = url_info.get("verified", False)
+                article["original_url"] = url_info.get("original_url", "")
+            elif url_info.get("url"):
+                article["url"] = url_info["url"]
+    
+    return refined_articles
 
 
 def validate_and_fix_urls(articles: List[Dict[str, Any]], section: str, openai_client: Any, model: str, url_change_log: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
@@ -194,6 +222,239 @@ def is_recent_article(article: Dict[str, Any], days: int = 7) -> bool:
         return (datetime.now() - date).days <= days
     except Exception:
         return False
+
+
+def verify_article_with_search(article: Dict[str, Any], days_back: int = 3) -> Dict[str, Any]:
+    """
+    Verify an article exists by searching for it on the web.
+    Returns the article with verification status and corrected URL if found.
+    Also checks if the article date matches (within acceptable range).
+    """
+    import requests
+    from config import SERPAPI_KEY
+    
+    if not SERPAPI_KEY:
+        article["verified"] = False
+        article["verification_reason"] = "No SERP API key"
+        return article
+    
+    # Build search query from title and source
+    title = article.get("title", "")
+    source = article.get("source", "")
+    article_date = article.get("date", "")
+    
+    if not title:
+        article["verified"] = False
+        article["verification_reason"] = "No title to search"
+        return article
+    
+    # Search for the article
+    query = f'"{title}" {source}'
+    
+    # Flexible date tolerance: if looking for 3 days, allow up to 7 days
+    flexible_days = max(days_back * 2, 7)
+    
+    try:
+        # First try Google News
+        params = {
+            "engine": "google_news",
+            "q": query,
+            "hl": "en",
+            "gl": "us",
+            "num": 20,
+            "api_key": SERPAPI_KEY,
+            "tbs": f"qdr:d{flexible_days}"  # Use flexible date range
+        }
+        
+        r = requests.get("https://serpapi.com/search", params=params, timeout=10)
+        if r.ok:
+            data = r.json()
+            news_results = data.get("news_results", [])
+            
+            # Look for exact or close match
+            for result in news_results:
+                result_title = result.get("title", "").lower()
+                # result_source = result.get("source", {}).get("name", "").lower() # Not used currently
+                result_url = result.get("link")
+                date_str = result.get("date")
+                
+                # Check title similarity
+                if (title.lower() in result_title or 
+                    result_title in title.lower() or
+                    # Check if most words match
+                    len(set(title.lower().split()) & set(result_title.split())) > min(3, len(title.split()) // 2)):
+                    
+                    # Verify date is recent and matches claimed date
+                    if date_str:
+                        # Check if the found article is within flexible date range
+                        if is_recent_date_string(date_str, flexible_days):
+                            # Also check if dates roughly match (if article has a date)
+                            date_match = check_date_match(article_date, date_str, tolerance_days=3)
+                            if date_match["matches"]:
+                                article["verified"] = True
+                                article["verified_url"] = result_url
+                                article["verified_date"] = date_str
+                                article["original_url"] = article.get("url", "")
+                                article["date_verification"] = "exact_match"
+                                return article
+                            elif date_match["close_match"]:
+                                # Accept close matches but note the discrepancy
+                                article["verified"] = True
+                                article["verified_url"] = result_url
+                                article["verified_date"] = date_str
+                                article["original_url"] = article.get("url", "")
+                                article["date_verification"] = f"close_match (claimed: {article_date}, actual: {date_str})"
+                                return article
+        
+        # Try regular Google search if news search fails
+        params = {
+            "engine": "google",
+            "q": query,
+            "hl": "en",
+            "gl": "us",
+            "num": 10,
+            "api_key": SERPAPI_KEY,
+            "tbs": f"qdr:d{flexible_days}"
+        }
+        
+        r = requests.get("https://serpapi.com/search", params=params, timeout=10)
+        if r.ok:
+            data = r.json()
+            organic_results = data.get("organic_results", [])
+            
+            for result in organic_results:
+                result_title = result.get("title", "").lower()
+                result_url = result.get("link")
+                snippet = result.get("snippet", "").lower()
+                
+                if (title.lower() in result_title or 
+                    title.lower() in snippet or
+                    len(set(title.lower().split()) & set(result_title.split())) > min(3, len(title.split()) // 2)):
+                    
+                    article["verified"] = True
+                    article["verified_url"] = result_url
+                    article["original_url"] = article.get("url", "")
+                    return article
+        
+        # Not found
+        article["verified"] = False
+        article["verification_reason"] = "Article not found in search results"
+        return article
+        
+    except Exception as e:
+        article["verified"] = False
+        article["verification_reason"] = f"Search error: {str(e)}"
+        return article
+
+
+def is_recent_date_string(date_str: str, days: int) -> bool:
+    """Helper to check if a date string represents a recent date."""
+    try:
+        # Handle relative dates like "2 days ago", "yesterday"
+        lower_date = date_str.lower()
+        if "hour" in lower_date or "minute" in lower_date or "today" in lower_date:
+            return True
+        if "yesterday" in lower_date:
+            return True
+        if "day" in lower_date and "ago" in lower_date:
+            # Extract number
+            import re
+            match = re.search(r'(\d+)', lower_date)
+            if match:
+                days_ago = int(match.group(1))
+                return days_ago <= days
+        
+        # Try parsing as date
+        from dateutil import parser
+        parsed_date = parser.parse(date_str)
+        return (datetime.now() - parsed_date).days <= days
+    except:
+        return False
+
+
+def check_date_match(claimed_date: str, actual_date: str, tolerance_days: int = 3) -> Dict[str, bool]:
+    """
+    Check if two dates match within a tolerance.
+    Returns dict with 'matches' (exact match) and 'close_match' (within tolerance).
+    """
+    if not claimed_date or not actual_date:
+        # If no claimed date, we can't verify but we'll accept it
+        return {"matches": True, "close_match": True}
+    
+    try:
+        from dateutil import parser
+        
+        # Parse claimed date
+        claimed = None
+        if claimed_date:
+            try:
+                claimed = datetime.fromisoformat(claimed_date.replace("Z", "").split("T")[0])
+            except:
+                claimed = parser.parse(claimed_date)
+        
+        # Parse actual date (from search results)
+        actual = None
+        if actual_date:
+            # Handle relative dates
+            lower_actual = actual_date.lower()
+            if "today" in lower_actual or "hour" in lower_actual or "minute" in lower_actual:
+                actual = datetime.now()
+            elif "yesterday" in lower_actual:
+                actual = datetime.now() - timedelta(days=1)
+            elif "day" in lower_actual and "ago" in lower_actual:
+                import re
+                match = re.search(r'(\d+)', lower_actual)
+                if match:
+                    days_ago = int(match.group(1))
+                    actual = datetime.now() - timedelta(days=days_ago)
+            else:
+                actual = parser.parse(actual_date)
+        
+        if claimed and actual:
+            diff_days = abs((claimed - actual).days)
+            return {
+                "matches": diff_days == 0,
+                "close_match": diff_days <= tolerance_days
+            }
+        
+        # If we couldn't parse dates, be lenient
+        return {"matches": True, "close_match": True}
+        
+    except Exception as e:
+        # If date parsing fails, be lenient
+        return {"matches": True, "close_match": True}
+
+
+def check_articles_for_hallucinations(articles: List[Dict[str, Any]], section: str, days_back: int = 3) -> List[Dict[str, Any]]:
+    """
+    Check a list of articles for hallucinations by verifying them with web search.
+    Returns only verified articles with corrected URLs.
+    """
+    if not articles:
+        return []
+    
+    print(f"\n🔍 Checking {len(articles)} articles for hallucinations in '{section}'...", flush=True)
+    
+    verified_articles = []
+    for idx, article in enumerate(articles, 1):
+        print(f"   Verifying {idx}/{len(articles)}: {article.get('title', '')[:60]}...", flush=True)
+        verified_article = verify_article_with_search(article, days_back)
+        
+        if verified_article.get("verified"):
+            # Use the verified URL if found
+            if verified_article.get("verified_url"):
+                verified_article["url"] = verified_article["verified_url"]
+            verified_articles.append(verified_article)
+            print(f"      ✅ Verified: {verified_article.get('source', '')}", flush=True)
+            if verified_article.get("date_verification"):
+                print(f"      📅 Date: {verified_article.get('date_verification', '')}", flush=True)
+            if verified_article.get("verified_url") != verified_article.get("original_url"):
+                print(f"      🔗 Updated URL: {verified_article['verified_url']}", flush=True)
+        else:
+            print(f"      ❌ Not verified: {verified_article.get('verification_reason', 'Unknown')}", flush=True)
+    
+    print(f"   📊 Verified {len(verified_articles)}/{len(articles)} articles", flush=True)
+    return verified_articles
 
 
 def google_search_first_result(query: str) -> Optional[str]:

@@ -20,7 +20,7 @@ uae_ooh_prompt=[
         "role": "user",
         "content": (
             f"You must return exactly 5 articles. ONLY extract articles whose original publication date falls strictly between {start_date} and {end_date} (inclusive). Do not include articles published before or after this range. Use the original publication date only, not update dates. "
-            "Each article must include: a clear title, a concise summary of 2-4 sentences, the publication or website name as 'source', and the article's URL as 'url' and `published_date` in ISO 8601 format (YYYY-MM-DD). "
+            "Each article must include: a clear title, a concise summary of 2-4 sentences, the publication or website name as 'source', the article's URL as 'url', and the publication date as `date` in ISO 8601 format (YYYY-MM-DD). "
             "Return the results as a JSON object under the key 'articles'."
         )
     }]
@@ -45,7 +45,7 @@ global_ooh_prompt = [
             "with a focus on major global developments, corporate moves, and industry insights. "
             "Exclude unrelated marketing or generic business news. "
             "\n\nEach article must include:\n"
-            "- `title`\n- `summary`\n- `source`\n- `url`\n- `published_date`\n\n"
+            "- `title`\n- `summary`\n- `source`\n- `url`\n- `date` (publication date in YYYY-MM-DD format)\n\n"
             "Output format: JSON object under key `articles` with exactly 5 entries. "
             "Do not include any text outside the JSON object."
         )
@@ -73,7 +73,7 @@ uae_marketing_prompt = [
             "with a special focus on the UAE and MENA region. "
             "Exclude generic global marketing or unrelated business news. "
             "\n\nEach article must include:\n"
-            "- `title`\n- `summary`\n- `source`\n- `url`\n- `published_date`\n\n"
+            "- `title`\n- `summary`\n- `source`\n- `url`\n- `date` (publication date in YYYY-MM-DD format)\n\n"
             "Output format: JSON object under key `articles` with exactly 5 entries. "
             "Do not include any text outside the JSON object."
         )
@@ -101,7 +101,7 @@ global_marketing_prompt = [
             "with a focus on major global events, corporate deals, and strategy shifts. "
             "Exclude unrelated marketing technology or generic business news. "
             "\n\nEach article must include:\n"
-            "- `title`\n- `summary`\n- `source`\n- `url`\n- `published_date`\n\n"
+            "- `title`\n- `summary`\n- `source`\n- `url`\n- `date` (publication date in YYYY-MM-DD format)\n\n"
             "Output format: JSON object under key `articles` with exactly 5 entries. "
             "Do not include any text outside the JSON object."
         )
@@ -129,7 +129,7 @@ uae_business_prompt = [
             "with a special focus on the UAE and MENA region. "
             "Exclude global-only or irrelevant niche reports. "
             "\n\nEach article must include:\n"
-            "- `title`\n- `summary`\n- `source`\n- `url`\n- `published_date`\n\n"
+            "- `title`\n- `summary`\n- `source`\n- `url`\n- `date` (publication date in YYYY-MM-DD format)\n\n"
             "Output format: JSON object under key `articles` with exactly 5 entries. "
             "Do not include any text outside the JSON object."
         )
@@ -157,7 +157,7 @@ global_business_prompt = [
             "with a global focus. "
             "Exclude small local news or irrelevant reports. "
             "\n\nEach article must include:\n"
-            "- `title`\n- `summary`\n- `source`\n- `url`\n- `published_date`\n\n"
+            "- `title`\n- `summary`\n- `source`\n- `url`\n- `date` (publication date in YYYY-MM-DD format)\n\n"
             "Output format: JSON object under key `articles` with exactly 5 entries. "
             "Do not include any text outside the JSON object."
         )

@@ -209,15 +209,31 @@ def build_digest_for_date(date: datetime):
         merged[sec] = ai.get(sec, []) + direct.get(sec, [])
     
     # Refine articles to best 6 per section before saving
-    from news_fetchers import refine_articles, is_recent_article, fix_article_urls_with_search
+    from news_fetchers import refine_articles, is_recent_article, check_articles_for_hallucinations
     refined_sections = {}
     for section, articles in merged.items():
         # Filter by date first
         recent_articles = [a for a in articles if is_recent_article(a)]
+        
+        # Check for hallucinations BEFORE refining
+        print(f"\n\n{'='*60}")
+        print(f"Processing section: {section}")
+        print(f"{'='*60}")
+        
+        # Only check AI-sourced articles for hallucinations
+        ai_articles = [a for a in recent_articles if a.get('client') in ['OpenAI', 'Perplexity', 'Gemini']]
+        non_ai_articles = [a for a in recent_articles if a.get('client') not in ['OpenAI', 'Perplexity', 'Gemini']]
+        
+        if ai_articles:
+            verified_ai_articles = check_articles_for_hallucinations(ai_articles, section, days_back=3)
+            verified_articles = verified_ai_articles + non_ai_articles
+        else:
+            verified_articles = recent_articles
+        
         # Then refine to best 6
-        if LLM_ENABLED.get('openai') and recent_articles:
+        if LLM_ENABLED.get('openai') and verified_articles:
             refined = refine_articles(
-                articles=recent_articles,
+                articles=verified_articles,
                 section=section,
                 openai_client=openai_client,
                 model=MODEL_CONFIG["openai_model"],
@@ -226,21 +242,10 @@ def build_digest_for_date(date: datetime):
             refined_sections[section] = refined
         else:
             # If OpenAI disabled, just take first 6
-            refined_sections[section] = recent_articles[:6]
+            refined_sections[section] = verified_articles[:6]
     
-    # Fix URLs with Google search after refinement
-    print("\n🔗 Running link refinement on final articles...")
-    final_sections = {}
-    for section, articles in refined_sections.items():
-        # Only fix URLs for AI-sourced articles
-        ai_articles = [a for a in articles if a.get('client') in ['OpenAI', 'Perplexity', 'Gemini']]
-        non_ai_articles = [a for a in articles if a.get('client') not in ['OpenAI', 'Perplexity', 'Gemini']]
-        
-        if ai_articles:
-            fixed_ai_articles = fix_article_urls_with_search(ai_articles, f"{section} (post-refinement)")
-            final_sections[section] = fixed_ai_articles + non_ai_articles
-        else:
-            final_sections[section] = articles
+    # No need for additional URL fixing since we already verified and fixed URLs in hallucination checker
+    final_sections = refined_sections
     
     payload = {
         'date': date.strftime('%Y-%m-%d'),
