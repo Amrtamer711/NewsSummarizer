@@ -65,7 +65,10 @@ LLM_ENABLED = {
     "gemini": True        # Google Gemini
 }
 
-TEST_MODE = True
+# Automatically detect environment
+# On Render, RENDER environment variable is set to "true"
+IS_PRODUCTION = os.getenv("RENDER") == "true"
+TEST_MODE = not IS_PRODUCTION  # Test mode when NOT in production
 
 SECTION_ORDER = [
     "UAE OOH",

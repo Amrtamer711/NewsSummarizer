@@ -605,4 +605,6 @@ def cleanup_charts():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', '3000'))
-    app.run(host='0.0.0.0', port=port, debug=True) 
+    # Auto-detect environment - debug only in development
+    is_production = os.environ.get('RENDER') == 'true'
+    app.run(host='0.0.0.0', port=port, debug=not is_production) 

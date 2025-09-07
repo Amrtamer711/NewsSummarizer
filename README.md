@@ -167,7 +167,7 @@ ALPHA_VANTAGE_API_KEY=...
 # Application Settings (Optional)
 BASE_PUBLIC_URL=http://localhost:3000
 DATA_DIR=./data  # /data on production
-TEST_MODE=false
+# TEST_MODE automatically detected (false on Render, true locally)
 ```
 
 ### Step 5: Initialize Database
@@ -305,7 +305,7 @@ Note: Legacy endpoints `/api/trigger/daily-news` and `/api/trigger/weekly-stocks
    - All API keys
    - Email configuration
    - Set `DATA_DIR=/data`
-   - Set `TEST_MODE=false`
+   - TEST_MODE is automatic (no need to set)
 
 4. **Deploy**
    - Render will automatically:
