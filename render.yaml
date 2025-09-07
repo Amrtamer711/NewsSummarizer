@@ -45,7 +45,8 @@ services:
       print(response.json())
       "
     envVars:
-      - fromService:
+      - key: CRON_AUTH_TOKEN
+        fromService:
           type: web
           name: newsai
           envVarKey: CRON_AUTH_TOKEN
