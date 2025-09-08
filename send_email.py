@@ -134,6 +134,7 @@ def plot_stock_chart(ticker, name=None, period="7d"):
 
 # === FETCH AI NEWS ===
 def fetch_ai_news():
+    # Use SECTION_ORDER to ensure consistent ordering
     prompt_map = {
         "UAE OOH": uae_ooh_prompt,
         "Global OOH": global_ooh_prompt,
@@ -143,7 +144,8 @@ def fetch_ai_news():
         "Global Business": global_business_prompt
     }
 
-    sections = list(prompt_map.keys())
+    # Use SECTION_ORDER instead of prompt_map.keys() to ensure correct order
+    sections = SECTION_ORDER
     all_section_articles = {}
     
     def _process_section(key: str):
@@ -185,7 +187,8 @@ def fetch_news():
         "Global Business": "global business OR world economy OR international companies OR business"
     }
 
-    sections = list(query_map.keys())
+    # Use SECTION_ORDER to ensure consistent ordering
+    sections = SECTION_ORDER
     all_section_articles = {}
     logs_by_section = {}
 
@@ -291,8 +294,11 @@ def build_and_send_email(test_mode=False):
 
     print("\n🧩 Merging sources...")
     merged_articles = {}
-    for section in set(ai_articles.keys()).union(news_articles.keys()):
-        merged = ai_articles.get(section, []) + news_articles.get(section, [])
+    # Use SECTION_ORDER to maintain consistent ordering
+    for section in SECTION_ORDER:
+        ai_items = ai_articles.get(section, [])
+        news_items = news_articles.get(section, [])
+        merged = ai_items + news_items
         filtered_by_date = [a for a in merged if nf_is_recent_article(a)]
         merged_articles[section] = filtered_by_date
 
