@@ -26,13 +26,18 @@ services:
       import requests
       from datetime import datetime
       
-      render_url = os.environ.get('RENDER_EXTERNAL_URL')
-      if not render_url:
-          print('ERROR: RENDER_EXTERNAL_URL not set')
+      # Get the hostname from Render
+      hostname = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+      if not hostname:
+          print('ERROR: RENDER_EXTERNAL_HOSTNAME not set')
+          print('Available env vars:', list(os.environ.keys()))
           exit(1)
       
-      # Add https:// if not present
-      app_url = f'https://{render_url}' if not render_url.startswith('http') else render_url
+      # Construct the full URL - hostname might already include .onrender.com
+      if '.onrender.com' in hostname or '.' in hostname:
+          app_url = f'https://{hostname}'
+      else:
+          app_url = f'https://{hostname}.onrender.com'
       token = os.environ.get('CRON_AUTH_TOKEN')
       
       is_monday = datetime.now().weekday() == 0
@@ -58,7 +63,7 @@ services:
           type: web
           name: newsai
           envVarKey: CRON_AUTH_TOKEN
-      - key: RENDER_EXTERNAL_URL
+      - key: RENDER_EXTERNAL_HOSTNAME
         fromService:
           type: web
           name: newsai
