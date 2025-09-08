@@ -452,9 +452,14 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
                 json_schema=schema,
             )
             # Fix URLs immediately after extraction
-            openai_items = data.get("items", [])
+            # Handle both list and dict responses
+            if isinstance(data, list):
+                openai_items = data
+            else:
+                openai_items = data.get("items", [])
+            
             for item in openai_items:
-                item = verify_stock_article_url(item, company_name, ticker_symbol)
+                verify_stock_article_url(item, company_name, ticker_symbol)
             items.extend(openai_items)
             print(f"       ✅ OpenAI found {len(openai_items)} news items (URLs verified)", flush=True)
         except Exception as e:
