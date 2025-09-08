@@ -11,6 +11,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Callable
 from json_helpers import format_json_schema
 from llm_core import call_openai, call_perplexity, call_gemini
+import requests
+from config import SERPAPI_KEY
 
 
 def format_large_number(num: float) -> str:
@@ -449,8 +451,14 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
                 tools=[{"type": "web_search_preview"}],
                 json_schema=schema,
             )
-            items.extend(data.get("items", []))
+            # Fix URLs immediately after extraction
+            openai_items = data.get("items", [])
+            for item in openai_items:
+                item = verify_stock_article_url(item, company_name, ticker_symbol)
+            items.extend(openai_items)
+            print(f"       ✅ OpenAI found {len(openai_items)} news items (URLs verified)", flush=True)
         except Exception as e:
+            print(f"       ❌ OpenAI news failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"OpenAI company news error: {e}")
 
     # Perplexity: top-level array
@@ -469,8 +477,14 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
                 json_schema=schema_arr,
                 timeout=30,
             )
-            items.extend(data)
-            print(f"       ✅ Perplexity found {len(data) if isinstance(data, list) else 0} news items", flush=True)
+            # Fix URLs immediately after extraction
+            if isinstance(data, list):
+                for item in data:
+                    verify_stock_article_url(item, company_name, ticker_symbol)
+                items.extend(data)
+                print(f"       ✅ Perplexity found {len(data)} news items (URLs verified)", flush=True)
+            else:
+                print(f"       ⚠️  Perplexity returned unexpected format", flush=True)
         except Exception as e:
             print(f"       ❌ Perplexity news failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Perplexity company news error: {e}")
@@ -492,17 +506,33 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
             if isinstance(data, dict) and "items" in data:
                 data = data["items"]
             if isinstance(data, list):
+                # Fix URLs immediately after extraction
+                for item in data:
+                    verify_stock_article_url(item, company_name, ticker_symbol)
                 items.extend(data)
-                print(f"       ✅ Gemini found {len(data)} news items", flush=True)
+                print(f"       ✅ Gemini found {len(data)} news items (URLs verified)", flush=True)
             else:
                 print(f"       ⚠️  Gemini returned unexpected format", flush=True)
         except Exception as e:
             print(f"       ❌ Gemini news failed: {str(e)[:50]}...", flush=True)
             if logger: logger(f"Gemini company news error: {e}")
 
+    # Verify all URLs with SerpAPI before refinement
+    if items and SERPAPI_KEY:
+        print(f"       🔍 Verifying {len(items)} article URLs with web search...", flush=True)
+        verified_items = []
+        for article in items:
+            # Only re-verify if not already verified
+            if not article.get("verified_url"):
+                article = verify_stock_article_url(article, company_name, ticker_symbol)
+            if article.get("link"):  # Keep articles with valid links
+                verified_items.append(article)
+        items = verified_items
+        print(f"       ✅ {len(items)} articles have valid URLs", flush=True)
+    
     # Refine & select top using OpenAI
     if items and llm_enabled.get("openai") and clients.get("openai"):
-        print(f"       🔄 Refining {len(items)} total news items with OpenAI...", flush=True)
+        print(f"       🔄 Refining {len(items)} verified news items with OpenAI...", flush=True)
         try:
             schema_ref = format_json_schema(
                 {
@@ -532,8 +562,15 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
                 {
                     "role": "system",
                     "content": (
-                        "You are an assistant cleaning and selecting company news items. "
-                        f"De-duplicate near-identical stories and select at most {max_items} most relevant for {company_name} ({ticker_symbol})."
+                        "You are selecting investment-relevant news for professional investors. "
+                        f"Select ONLY the {max_items} most important news items for {company_name} ({ticker_symbol}). "
+                        "Requirements: "
+                        "1. ENGLISH language only - reject all non-English articles "
+                        "2. From reputable financial/business sources (Reuters, Bloomberg, WSJ, FT, etc.) "
+                        "3. Must be specifically about the company, not just mentions "
+                        "4. No duplicate stories - pick the best source if multiple cover same event "
+                        "5. Prioritize: earnings, M&A, major contracts, leadership changes, analyst upgrades "
+                        "6. Reject: general industry news, competitor news, low-quality sources"
                     ),
                 },
                 {"role": "user", "content": json.dumps({"items": items})},
@@ -550,6 +587,17 @@ def get_company_news_items(company_name: str, ticker_symbol: str, llm_enabled: D
             items = items[:max_items]
     else:
         items = items[:max_items]
+
+    # Final URL verification check
+    if items and SERPAPI_KEY:
+        print(f"       🔍 Final URL verification for {len(items)} selected articles...", flush=True)
+        for item in items:
+            # Check if URL needs updating
+            original_link = item.get("link", "")
+            if original_link and not item.get("verified_url"):
+                updated = verify_stock_article_url(item, company_name, ticker_symbol)
+                if updated.get("verified_url") and updated["verified_url"] != original_link:
+                    print(f"         🔗 Updated URL for: {item.get('title', '')[:50]}...")
 
     # Map to expected shape for HTML
     out: List[Dict[str, str]] = []
@@ -582,3 +630,39 @@ def log_message(logger: Optional[Callable], message: str):
         logger(message)
     else:
         print(message)
+
+
+def verify_stock_article_url(article: Dict[str, Any], company_name: str, ticker: str) -> Dict[str, Any]:
+    """Verify and fix stock news article URL using SerpAPI."""
+    if not SERPAPI_KEY or not article.get("title"):
+        return article
+    
+    try:
+        # Search for the exact article
+        title = article.get("title", "")
+        publisher = article.get("publisher", "")
+        
+        # Build search query
+        query = f'{title} {company_name} {publisher} site:{publisher.lower().replace(" ", "")}.com'
+        
+        params = {
+            "q": query,
+            "api_key": SERPAPI_KEY,
+            "engine": "google",
+            "num": 5,
+        }
+        
+        r = requests.get("https://serpapi.com/search", params=params, timeout=30)
+        if r.ok:
+            data = r.json()
+            for result in data.get("organic_results", []):
+                result_title = result.get("title", "").lower()
+                if title.lower() in result_title or len(set(title.lower().split()) & set(result_title.split())) > 3:
+                    article["verified_url"] = result.get("link")
+                    article["original_url"] = article.get("link")
+                    article["link"] = result.get("link")
+                    return article
+    except Exception:
+        pass
+    
+    return article

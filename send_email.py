@@ -72,10 +72,10 @@ TEST_MODE = not IS_PRODUCTION  # Test mode when NOT in production
 
 SECTION_ORDER = [
     "UAE OOH",
-    "UAE Marketing",
-    "UAE Business",
     "Global OOH",
+    "UAE Marketing",
     "Global Marketing",
+    "UAE Business",
     "Global Business",
 ]
 
