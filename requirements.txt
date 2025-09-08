@@ -16,3 +16,4 @@ openai==1.97.0
 requests==2.32.4
 yfinance==0.2.65
 python-dotenv==1.0.0
+twilio==8.10.0

@@ -10,6 +10,7 @@ from config import PERPLEXITY_API_KEY, STATIC_DIR
 from clients import client as openai_client, gemini_client
 from notifier import send_outlook_email
 from config import BASE_PUBLIC_URL
+from whatsapp_notifier import send_whatsapp_digest
 
 app = Flask(__name__)
 init_db()
@@ -306,6 +307,13 @@ def build_digest_for_date(date: datetime):
             send_outlook_email(subject, body, to_list)
     except Exception:
         pass
+    
+    # Send WhatsApp notification
+    try:
+        print("\n📱 Sending WhatsApp digest notification...")
+        send_whatsapp_digest(payload, is_monday=date.weekday() == 0)
+    except Exception as e:
+        print(f"⚠️ WhatsApp notification failed: {e}")
     return payload
 
 
