@@ -26,8 +26,18 @@ services:
       import requests
       from datetime import datetime
       
-      app_url = os.environ.get('RENDER_EXTERNAL_URL', 'https://newsai.onrender.com')
+      render_url = os.environ.get('RENDER_EXTERNAL_URL')
+      if not render_url:
+          print('ERROR: RENDER_EXTERNAL_URL not set')
+          exit(1)
+      
+      # Add https:// if not present
+      app_url = f'https://{render_url}' if not render_url.startswith('http') else render_url
       token = os.environ.get('CRON_AUTH_TOKEN')
+      
+      is_monday = datetime.now().weekday() == 0
+      digest_type = 'Monday (News + Stocks)' if is_monday else 'Daily News'
+      print(f'Triggering {digest_type} for {app_url}...')
       
       # Single endpoint handles both daily news and Monday stocks
       response = requests.post(
@@ -35,10 +45,12 @@ services:
           headers={'X-Auth-Token': token}
       )
       
-      is_monday = datetime.now().weekday() == 0
-      digest_type = 'Monday (News + Stocks)' if is_monday else 'Daily News'
       print(f'{digest_type} digest trigger: {response.status_code}')
-      print(response.json())
+      
+      if response.status_code == 200:
+          print(response.json())
+      else:
+          print(f'Error: {response.text}')
       "
     envVars:
       - key: CRON_AUTH_TOKEN
@@ -46,3 +58,8 @@ services:
           type: web
           name: newsai
           envVarKey: CRON_AUTH_TOKEN
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: newsai
+          property: host
