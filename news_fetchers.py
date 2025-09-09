@@ -248,8 +248,8 @@ def verify_article_with_search(article: Dict[str, Any], days_back: int = 3) -> D
         article["verification_reason"] = "No title to search"
         return article
     
-    # Search for the article
-    query = f'"{title}" {source}'
+    # Search for the article - start without quotes for better flexibility
+    query = f"{title} {source}"
     
     # Flexible date tolerance: if looking for 3 days, allow up to 7 days
     flexible_days = max(days_back * 2, 7)
@@ -306,7 +306,7 @@ def verify_article_with_search(article: Dict[str, Any], days_back: int = 3) -> D
                                 article["date_verification"] = f"close_match (claimed: {article_date}, actual: {date_str})"
                                 return article
         
-        # Try regular Google search if news search fails
+        # Try regular Google search as fallback
         params = {
             "engine": "google",
             "q": query,
@@ -329,11 +329,12 @@ def verify_article_with_search(article: Dict[str, Any], days_back: int = 3) -> D
                 
                 if (title.lower() in result_title or 
                     title.lower() in snippet or
-                    len(set(title.lower().split()) & set(result_title.split())) > min(3, len(title.split()) // 2)):
+                    len(set(title.lower().split()) & set(result_title.split())) >= 3):  # Just 3 words match is enough
                     
                     article["verified"] = True
                     article["verified_url"] = result_url
                     article["original_url"] = article.get("url", "")
+                    article["date_verification"] = "google_search_no_date"  # Note we can't verify date from regular search
                     return article
         
         # Not found
@@ -565,7 +566,7 @@ def fix_article_urls_with_search(articles: List[Dict[str, Any]], llm_name: str) 
         original_url = article.get('url', '')
         
         # Construct search query
-        search_query = f"{title} {source}"
+        search_query = f"{title} - {source}"
         
         # Get first Google result
         found_url = google_search_first_result(search_query)
