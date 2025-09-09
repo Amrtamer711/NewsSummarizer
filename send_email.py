@@ -458,7 +458,7 @@ def build_and_send_email(test_mode=False):
             </h3>
             <ul style='padding-left:0;list-style:none;margin-top:20px;'>"""
         if not articles:
-            html += "<li style='color:#ccc;'>No news available for this section.</li>"
+            html += "<li style='color:#ccc;padding:20px;background:#0d0d0d;border-radius:4px;'>No news available today - check back tomorrow</li>"
         else:
             for item in articles:
                 title = item.get("title", "Untitled")

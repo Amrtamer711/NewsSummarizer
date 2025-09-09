@@ -232,13 +232,18 @@ def build_digest_for_date(date: datetime):
     ai = fetch_ai_news()
     direct = fetch_news()
     merged = {}
-    for sec in set(ai.keys()).union(direct.keys()):
-        merged[sec] = ai.get(sec, []) + direct.get(sec, [])
+    # Always include all sections from SECTION_ORDER
+    for sec in SECTION_ORDER:
+        ai_articles = ai.get(sec, [])
+        direct_articles = direct.get(sec, [])
+        merged[sec] = ai_articles + direct_articles
     
     # Refine articles to best 6 per section before saving
     from news_fetchers import refine_articles, is_recent_article, check_articles_for_hallucinations
     refined_sections = {}
-    for section, articles in merged.items():
+    # Process sections in SECTION_ORDER to maintain consistency
+    for section in SECTION_ORDER:
+        articles = merged.get(section, [])
         # Filter by date first
         recent_articles = [a for a in articles if is_recent_article(a)]
         
@@ -333,31 +338,19 @@ def today():
     # Weekly Stocks (if present)
     if digest.get('stocks_html'):
         parts.append("<div class='card'><h2 style='margin:0 0 10px 0'>Weekly Stocks</h2>" + digest['stocks_html'] + "</div>")
-    # News sections
+    # News sections - ALWAYS show all sections in order
     items_html = ''
-    # Enforce desired section order
-    rendered_sections = set()
     for section in SECTION_ORDER:
-        items = digest['sections'].get(section)
+        items = digest['sections'].get(section, [])
+        items_html += f"<h2 style=\"color:#4fc3f7\">{section}</h2>"
         if not items:
-            continue
-        rendered_sections.add(section)
-        items_html += f"<h2 style=\"color:#4fc3f7\">{section}</h2>"
-        for it in items[:6]:
-            saved = is_article_saved(it.get('url','#'))
-            label = 'Unsave' if saved else 'Save'
-            search_url = f"https://www.google.com/search?q={quote(it.get('title',''))}"
-            items_html += render_template_string(ARTICLE_ITEM, title=it.get('title','Untitled'), url=it.get('url','#'), summary=it.get('summary',''), section=section, saved_label=label, search_url=search_url)
-    # Render any remaining sections (if present)
-    for section, items in digest['sections'].items():
-        if section in rendered_sections:
-            continue
-        items_html += f"<h2 style=\"color:#4fc3f7\">{section}</h2>"
-        for it in items[:6]:
-            saved = is_article_saved(it.get('url','#'))
-            label = 'Unsave' if saved else 'Save'
-            search_url = f"https://www.google.com/search?q={quote(it.get('title',''))}"
-            items_html += render_template_string(ARTICLE_ITEM, title=it.get('title','Untitled'), url=it.get('url','#'), summary=it.get('summary',''), section=section, saved_label=label, search_url=search_url)
+            items_html += "<div class='card'><p style='color:#aaa;margin:0'>No news available today - check back tomorrow</p></div>"
+        else:
+            for it in items[:6]:
+                saved = is_article_saved(it.get('url','#'))
+                label = 'Unsave' if saved else 'Save'
+                search_url = f"https://www.google.com/search?q={quote(it.get('title',''))}"
+                items_html += render_template_string(ARTICLE_ITEM, title=it.get('title','Untitled'), url=it.get('url','#'), summary=it.get('summary',''), section=section, saved_label=label, search_url=search_url)
     parts.append(items_html)
     content = f"<h1>Today's Digest – {date_str}</h1>" + ''.join(parts)
     return render_template_string(BASE_HTML, content=content, nav_active='today')
@@ -411,27 +404,17 @@ def calendar_view():
             if digest.get('stocks_html'):
                 parts.append("<div class='card'><h3 style='margin:0 0 8px 0'>Weekly Stocks</h3>" + digest['stocks_html'] + "</div>")
             items_html = ''
-            rendered_sections = set()
             for section in SECTION_ORDER:
-                items = digest['sections'].get(section)
+                items = digest['sections'].get(section, [])
+                items_html += f"<h3 style=\"color:#4fc3f7\">{section}</h3>"
                 if not items:
-                    continue
-                rendered_sections.add(section)
-                items_html += f"<h3 style=\"color:#4fc3f7\">{section}</h3>"
-                for it in items[:6]:
-                    saved = is_article_saved(it.get('url','#'))
-                    label = 'Unsave' if saved else 'Save'
-                    search_url = f"https://www.google.com/search?q={quote(it.get('title',''))}"
-                    items_html += render_template_string(ARTICLE_ITEM, title=it.get('title','Untitled'), url=it.get('url','#'), summary=it.get('summary',''), section=section, saved_label=label, search_url=search_url)
-            for section, items in digest['sections'].items():
-                if section in rendered_sections:
-                    continue
-                items_html += f"<h3 style=\"color:#4fc3f7\">{section}</h3>"
-                for it in items[:6]:
-                    saved = is_article_saved(it.get('url','#'))
-                    label = 'Unsave' if saved else 'Save'
-                    search_url = f"https://www.google.com/search?q={quote(it.get('title',''))}"
-                    items_html += render_template_string(ARTICLE_ITEM, title=it.get('title','Untitled'), url=it.get('url','#'), summary=it.get('summary',''), section=section, saved_label=label, search_url=search_url)
+                    items_html += "<div class='card'><p style='color:#aaa;margin:0'>No news available today - check back tomorrow</p></div>"
+                else:
+                    for it in items[:6]:
+                        saved = is_article_saved(it.get('url','#'))
+                        label = 'Unsave' if saved else 'Save'
+                        search_url = f"https://www.google.com/search?q={quote(it.get('title',''))}"
+                        items_html += render_template_string(ARTICLE_ITEM, title=it.get('title','Untitled'), url=it.get('url','#'), summary=it.get('summary',''), section=section, saved_label=label, search_url=search_url)
             parts.append(items_html)
             bottom = ''.join(parts)
         else:
