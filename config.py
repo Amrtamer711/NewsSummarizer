@@ -18,7 +18,13 @@ OUTLOOK_SMTP_USER = os.getenv("OUTLOOK_SMTP_USER", "")  # e.g. yourname@yourdoma
 OUTLOOK_SMTP_PASS = os.getenv("OUTLOOK_SMTP_PASS", "")  # app password or account password if enabled
 
 # Public base URL of the site for links in notifications
-BASE_PUBLIC_URL = os.getenv("BASE_PUBLIC_URL", "http://localhost:3000")
+# On Render, automatically use the service URL
+if os.getenv("RENDER"):
+    # Render provides the service name and onrender.com domain
+    render_service_name = os.getenv("RENDER_SERVICE_NAME", "newsai")
+    BASE_PUBLIC_URL = os.getenv("BASE_PUBLIC_URL", f"https://{render_service_name}.onrender.com")
+else:
+    BASE_PUBLIC_URL = os.getenv("BASE_PUBLIC_URL", "http://localhost:3000")
 
 # Data directory configuration
 # On Render.com, persistent disk is mounted at /data
