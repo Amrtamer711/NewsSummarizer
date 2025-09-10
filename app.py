@@ -313,12 +313,20 @@ def build_digest_for_date(date: datetime):
     except Exception:
         pass
     
-    # Send WhatsApp notification
-    try:
-        print("\n📱 Sending WhatsApp digest notification...")
-        send_whatsapp_digest(payload, is_monday=date.weekday() == 0)
-    except Exception as e:
-        print(f"⚠️ WhatsApp notification failed: {e}")
+    # Send WhatsApp notification - DISABLED due to Twilio 24-hour window limitation
+    # WhatsApp requires template messages for notifications sent outside 24-hour window
+    # TODO: Either implement WhatsApp Business API templates or use Telegram instead
+    # try:
+    #     print("\n📱 Sending WhatsApp digest notification...")
+    #     result = send_whatsapp_digest(payload, is_monday=date.weekday() == 0)
+    #     if result:
+    #         print("✅ WhatsApp notification sent successfully!")
+    #     else:
+    #         print("⚠️ WhatsApp notification failed (no exception, but returned False)")
+    # except Exception as e:
+    #     print(f"⚠️ WhatsApp notification failed with exception: {e}")
+    #     import traceback
+    #     traceback.print_exc()
     return payload
 
 
@@ -526,16 +534,18 @@ def trigger_daily_digest():
         digest_type = "daily news + weekly stocks" if is_monday else "daily news"
         print(f"🔄 Triggered {digest_type} collection for {date.strftime('%Y-%m-%d')}")
         
-        # Run the digest build (includes stocks automatically on Mondays)
-        payload = build_digest_for_date(date)
+        # Start digest build in background thread
+        import threading
+        thread = threading.Thread(target=build_digest_for_date, args=(date,))
+        thread.daemon = True  # Dies when main process dies
+        thread.start()
         
         return jsonify({
             'success': True,
-            'date': payload['date'],
+            'date': date.strftime('%Y-%m-%d'),
             'digest_type': digest_type,
             'is_monday': is_monday,
-            'sections': {k: len(v) for k, v in payload['sections'].items()},
-            'has_stocks': bool(payload.get('stocks_html'))
+            'message': 'Digest processing started in background'
         }), 200
     except Exception as e:
         print(f"❌ Error in daily digest trigger: {e}")

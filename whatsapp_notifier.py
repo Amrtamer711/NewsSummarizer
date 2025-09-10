@@ -11,6 +11,14 @@ def send_whatsapp_digest(digest_data, is_monday=False):
     from_whatsapp = os.environ.get('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
     to_whatsapp = os.environ.get('BOSS_WHATSAPP_NUMBER', 'whatsapp:+971504863342')
     
+    # Debug logging
+    print(f"🔍 WhatsApp Debug:")
+    print(f"   - Account SID: {'SET' if account_sid else 'NOT SET'}")
+    print(f"   - Auth Token: {'SET' if auth_token else 'NOT SET'}")
+    print(f"   - From: {from_whatsapp}")
+    print(f"   - To: {to_whatsapp}")
+    print(f"   - BASE_PUBLIC_URL: {BASE_PUBLIC_URL}")
+    
     if not account_sid or not auth_token:
         print("⚠️ Twilio credentials not configured, skipping WhatsApp notification")
         return False
