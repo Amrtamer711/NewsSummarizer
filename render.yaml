@@ -54,8 +54,10 @@ services:
       
       if response.status_code == 200:
           print(response.json())
+          exit(0)  # Successful exit
       else:
           print(f'Error: {response.text}')
+          exit(1)  # Error exit
       "
     envVars:
       - key: CRON_AUTH_TOKEN
