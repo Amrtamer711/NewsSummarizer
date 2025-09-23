@@ -303,9 +303,13 @@ Note: Legacy endpoints `/api/trigger/daily-news` and `/api/trigger/weekly-stocks
    
    Add all variables from `.env` file in Render dashboard:
    - All API keys
-   - Email configuration
+   - Email configuration:
+     - `APP_PSWD`: Gmail app password
+     - `NOTIFICATION_FROM_EMAIL`: Email to send from (defaults to daily.multiply.news@gmail.com)
+     - `NOTIFICATION_TO_EMAIL`: Email to notify when digest is ready (defaults to atmh2002@gmail.com)
    - DATA_DIR is automatic (no need to set)
    - TEST_MODE is automatic (no need to set)
+   - BASE_PUBLIC_URL is automatically detected on Render
 
 4. **Deploy**
    - Render will automatically:

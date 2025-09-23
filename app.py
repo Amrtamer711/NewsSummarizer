@@ -8,8 +8,6 @@ from send_email import fetch_ai_news, fetch_news, MODEL_CONFIG, LLM_ENABLED, STO
 from stock_metrics import get_comprehensive_stock_metrics, format_metrics_html, generate_stock_summary_table
 from config import PERPLEXITY_API_KEY, STATIC_DIR
 from clients import client as openai_client, gemini_client
-from notifier import send_outlook_email
-from config import BASE_PUBLIC_URL
 from whatsapp_notifier import send_whatsapp_digest
 
 app = Flask(__name__)
@@ -290,27 +288,14 @@ def build_digest_for_date(date: datetime):
         except Exception:
             payload['stocks_html'] = ''
     save_digest(payload['date'], payload)
-    # Send Outlook notification email with links
+    
+    # Send Gmail notification that digest is ready
     try:
-        ds = payload['date']
-        today_link = f"{BASE_PUBLIC_URL}/"
-        calendar_link = f"{BASE_PUBLIC_URL}/calendar?date={ds}"
-        stocks_link = f"{BASE_PUBLIC_URL}/stocks" if payload.get('stocks_html') else None
-        is_monday = date.weekday() == 0
-        subject = ("📊 Weekly Stocks + News digest ready" if is_monday else "📰 Daily news digest ready")
-        body = "<div style='font-family:Arial,sans-serif'>"
-        body += f"<p>Digest for <b>{ds}</b> is ready.</p>"
-        body += f"<p><a href='{today_link}'>Open Today</a> · <a href='{calendar_link}'>Open Calendar ({ds})</a>"
-        if stocks_link:
-            body += f" · <a href='{stocks_link}'>Open Weekly Stocks</a>"
-        body += "</p>"
-        body += "<p style='color:#666;font-size:12px'>This is an automated notification.</p>"
-        body += "</div>"
-        to_list = [os.environ.get('OUTLOOK_NOTIFY_TO') or os.environ.get('OUTLOOK_SMTP_USER','')]
-        to_list = [x for x in to_list if x]
-        if to_list:
-            send_outlook_email(subject, body, to_list)
-    except Exception:
+        print("\n📧 Sending digest ready notification email...")
+        from send_email import send_digest_ready_notification
+        send_digest_ready_notification()
+    except Exception as e:
+        print(f"⚠️ Failed to send digest notification: {e}")
         pass
     
     # Send WhatsApp notification - DISABLED due to Twilio 24-hour window limitation

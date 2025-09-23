@@ -522,6 +522,58 @@ def build_and_send_email(test_mode=False):
     print(f"✅ Email sent successfully to {TO_EMAIL}")
 
 
+def send_digest_ready_notification():
+    """Send a simple email notification that the digest is ready"""
+    try:
+        # Get notification email addresses from environment or use defaults
+        from_email = os.getenv("NOTIFICATION_FROM_EMAIL", FROM_EMAIL)
+        to_email = os.getenv("NOTIFICATION_TO_EMAIL", TO_EMAIL)
+        
+        # Get public URL from config
+        from config import BASE_PUBLIC_URL
+        
+        msg = MIMEMultipart()
+        msg["From"] = from_email
+        msg["To"] = to_email
+        msg["Subject"] = "📰 Your News Digest is Ready!"
+        
+        # Simple HTML body with link
+        html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; background-color: #f5f5f5; padding: 20px;">
+            <div style="max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h2 style="color: #333; margin-bottom: 20px;">Your Daily News Digest is Ready! 📰</h2>
+                <p style="color: #666; font-size: 16px; line-height: 1.6;">
+                    The news digest for today has been generated and is ready for viewing.
+                </p>
+                <div style="margin: 30px 0; text-align: center;">
+                    <a href="{BASE_PUBLIC_URL}/" style="display: inline-block; background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                        View Digest
+                    </a>
+                </div>
+                <p style="color: #999; font-size: 14px; margin-top: 30px;">
+                    This is an automated notification from your NewsAI digest system.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        msg.attach(MIMEText(html, "html"))
+        
+        # Send the email
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(from_email, APP_PSWD)
+            server.send_message(msg)
+        
+        print(f"✅ Digest notification email sent to {to_email}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to send digest notification: {e}")
+        return False
+
+
 # === RUN ===
 if __name__ == "__main__":
     import sys
