@@ -93,7 +93,7 @@ def extract_possible_json(raw_output):
 
 # === CONFIG ===
 FROM_EMAIL = "daily.multiply.news@gmail.com"
-TO_EMAIL = "atmh2002@gmail.com"
+TO_EMAIL = "jawad@multiply.ae"
 # Update subject based on day of week
 is_monday_check = datetime.now().weekday() == 0
 SUBJECT = "📊 Weekly Digest – Stock + News" if is_monday_check else "📰 Daily News Digest"
